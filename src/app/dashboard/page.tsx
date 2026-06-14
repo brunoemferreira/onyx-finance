@@ -14,8 +14,10 @@ import {
   Wallet, 
   CreditCard as CreditCardIcon, 
   Plus, 
-  ArrowRight 
+  ArrowRight,
+  PiggyBank
 } from "lucide-react";
+import BankLogo from "@/components/BankLogo";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, PieChart, Pie, Cell } from "recharts";
 
 // Dados mockados de fallback se o banco de dados estiver vazio
@@ -37,12 +39,31 @@ const mockCategoryData = [
   { name: "Lazer", value: 400, color: "#d4d4d8" },
 ];
 
+const mockAccounts = [
+  { id: "1", name: "Itaú", type: "checking", initialBalance: "3500.00", color: "#ec7000", institution: "itau" },
+  { id: "2", name: "Poupança Sicredi", type: "savings", initialBalance: "2601.80", color: "#3fa110", institution: "sicredi" },
+  { id: "3", name: "Nubank", type: "credit_card", initialBalance: "301.80", color: "#8a05be", institution: "nubank" },
+];
+
 const formatDate = (dateInput: Date | string) => {
   const d = new Date(dateInput);
   const day = String(d.getUTCDate()).padStart(2, '0');
   const month = String(d.getUTCMonth() + 1).padStart(2, '0');
   const year = d.getUTCFullYear();
   return `${day}/${month}/${year}`;
+};
+
+const getAccountIcon = (type: string) => {
+  switch (type) {
+    case "savings":
+      return PiggyBank;
+    case "credit_card":
+      return CreditCardIcon;
+    case "investment":
+      return TrendingUp;
+    default:
+      return Wallet;
+  }
 };
 
 export default function Dashboard() {
@@ -92,11 +113,8 @@ export default function Dashboard() {
         .reduce((sum, t) => sum + parseFloat(t.amount), 0)
     : 4200.00;
 
-  // 4. Cartão de Crédito Fatura e Limite
-  const creditCardAccount = accounts.find(a => a.type === "credit_card");
-  const creditCardBalance = creditCardAccount ? parseFloat(creditCardAccount.initialBalance) : 301.80;
-  const creditCardLimit = creditCardAccount ? parseFloat(creditCardAccount.creditLimit || "2000") : 2000.00;
-  const creditCardPercent = Math.min(100, (creditCardBalance / creditCardLimit) * 100);
+  // 4. Lista de Contas a Exibir
+  const displayAccounts = hasRealData ? accounts : mockAccounts;
 
   // 5. Categorias Dinâmicas
   const categoryChartData = (() => {
@@ -146,7 +164,7 @@ export default function Dashboard() {
       </div>
 
       {/* Cards de Resumo */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Saldo Geral */}
         <Card className="border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -184,30 +202,10 @@ export default function Dashboard() {
             </p>
           </CardContent>
         </Card>
-
-        {/* Fatura do Cartão */}
-        <Card className="border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-              {creditCardAccount ? `Fatura ${creditCardAccount.name}` : "Fatura Cartão Exemplo"}
-            </CardTitle>
-            <CreditCardIcon className="h-4 w-4 text-zinc-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-black text-zinc-900 dark:text-zinc-50">{formatBRL(creditCardBalance)}</div>
-            <div className="w-full bg-zinc-100 dark:bg-zinc-900 h-1.5 rounded-full mt-2 overflow-hidden">
-              <div className="bg-zinc-950 dark:bg-zinc-50 h-1.5 rounded-full" style={{ width: `${creditCardPercent}%` }} />
-            </div>
-            <div className="flex justify-between text-[9px] text-zinc-500 mt-1">
-              <span>Limite Usado {formatBRL(creditCardBalance)}</span>
-              <span>Total {formatBRL(creditCardLimit)}</span>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
-      {/* Seção de Gráficos */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Seção de Gráficos e Contas */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Evolução Mensal */}
         <Card className="lg:col-span-2 border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950">
           <CardHeader>
@@ -244,8 +242,34 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
+        {/* Minhas Contas */}
+        <Card className="lg:col-span-1 border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950 flex flex-col justify-between">
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold">Minhas Contas</CardTitle>
+            <CardDescription className="text-xs">Saldos individuais de cada conta ativa.</CardDescription>
+          </CardHeader>
+          <CardContent className="h-80 flex flex-col justify-between overflow-hidden">
+            <div className="flex-1 overflow-y-auto space-y-3 pr-1 scrollbar-thin h-full">
+              {displayAccounts.map((acc) => {
+                const bal = parseFloat(acc.initialBalance);
+                return (
+                  <div key={acc.id} className="flex items-center justify-between text-xs py-2 border-b border-zinc-100 dark:border-zinc-900/50 last:border-0">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <BankLogo institution={acc.institution} type={acc.type} className="h-7 w-7 rounded-lg" />
+                      <span className="truncate text-zinc-700 dark:text-zinc-300 font-semibold">{acc.name}</span>
+                    </div>
+                    <span className="font-bold text-zinc-900 dark:text-zinc-50 whitespace-nowrap ml-2">
+                      {formatBRL(bal)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Distribuição por Categoria */}
-        <Card className="border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950">
+        <Card className="lg:col-span-1 border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950 flex flex-col justify-between">
           <CardHeader>
             <CardTitle className="text-sm font-semibold">Gastos por Categoria</CardTitle>
             <CardDescription className="text-xs">Distribuição de custos baseada em despesas liquidas.</CardDescription>
@@ -258,13 +282,13 @@ export default function Dashboard() {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={categoryChartData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={70}
-                      paddingAngle={3}
-                      dataKey="value"
+                       data={categoryChartData}
+                       cx="50%"
+                       cy="50%"
+                       innerRadius={50}
+                       outerRadius={70}
+                       paddingAngle={3}
+                       dataKey="value"
                     >
                       {categoryChartData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />

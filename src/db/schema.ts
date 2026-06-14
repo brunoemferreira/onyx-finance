@@ -85,6 +85,12 @@ export const bankAccounts = pgTable("bank_account", {
   closingDay: integer("closing_day"), // Dia do fechamento da fatura (ex: 5)
   dueDay: integer("due_day"), // Dia do vencimento da fatura (ex: 15)
   
+  // Detalhes da Instituição Financeira e da Conta
+  institution: text("institution").default("generic").notNull(),
+  agency: text("agency"),
+  accountNumber: text("account_number"),
+  accountDigit: text("account_digit"),
+  
   color: text("color").default("#27272a").notNull(), // Tons de cinza por padrão (zinc-800)
   userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

@@ -47,6 +47,10 @@ export async function createBankAccount(data: {
   closingDay?: number;
   dueDay?: number;
   color?: string;
+  institution?: string;
+  agency?: string;
+  accountNumber?: string;
+  accountDigit?: string;
 }) {
   const userId = await getUserId();
   try {
@@ -57,6 +61,10 @@ export async function createBankAccount(data: {
       creditLimit: data.type === "credit_card" ? data.creditLimit : null,
       closingDay: data.type === "credit_card" ? data.closingDay : null,
       dueDay: data.type === "credit_card" ? data.dueDay : null,
+      institution: data.institution || "generic",
+      agency: data.agency || null,
+      accountNumber: data.accountNumber || null,
+      accountDigit: data.accountDigit || null,
       color: data.color || "#27272a",
       userId: userId,
     }).returning();
@@ -81,6 +89,10 @@ export async function updateBankAccount(
     closingDay?: number;
     dueDay?: number;
     color?: string;
+    institution?: string;
+    agency?: string;
+    accountNumber?: string;
+    accountDigit?: string;
   }
 ) {
   const userId = await getUserId();
@@ -94,6 +106,10 @@ export async function updateBankAccount(
         creditLimit: data.type === "credit_card" ? data.creditLimit : null,
         closingDay: data.type === "credit_card" ? data.closingDay : null,
         dueDay: data.type === "credit_card" ? data.dueDay : null,
+        institution: data.institution || "generic",
+        agency: data.agency || null,
+        accountNumber: data.accountNumber || null,
+        accountDigit: data.accountDigit || null,
         color: data.color || "#27272a",
       })
       .where(and(eq(bankAccounts.id, id), eq(bankAccounts.userId, userId)))
