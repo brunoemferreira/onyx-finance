@@ -40,7 +40,7 @@ export async function uploadReceipt(formData: FormData) {
   // Return public relative path
   return {
     success: true,
-    url: `/uploads/${uniqueName}`,
+    url: `/api/uploads/${uniqueName}`,
     fileName: file.name
   };
 }

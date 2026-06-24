@@ -101,7 +101,9 @@ import {
   Upload,
   Info,
   ExternalLink,
-  FileText
+  FileText,
+  Eye,
+  Download
 } from "lucide-react";
 
 type Transaction = {
@@ -1148,20 +1150,7 @@ export default function TransactionsPage() {
                         {/* 3. Descrição */}
                         <TableCell className="font-semibold py-1 text-zinc-900 dark:text-zinc-50 text-xs">
                           <div className="flex flex-col min-w-0">
-                            <span className="flex items-center gap-1.5 min-w-0">
-                              <span className="truncate max-w-[150px] sm:max-w-xs">{tx.description}</span>
-                              {tx.receiptUrl && (
-                                <a 
-                                  href={tx.receiptUrl} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer" 
-                                  className="text-zinc-400 hover:text-[#0B4F83] dark:hover:text-[#218FDE] flex-shrink-0"
-                                  title="Ver Comprovante"
-                                >
-                                  <Paperclip className="h-3.5 w-3.5" />
-                                </a>
-                              )}
-                            </span>
+                            <span className="truncate max-w-[150px] sm:max-w-xs">{tx.description}</span>
                             {isTrans && tx.toAccountName && (
                               <span className="text-[9px] text-zinc-400 font-normal">Destino: {tx.toAccountName}</span>
                             )}
@@ -1250,6 +1239,17 @@ export default function TransactionsPage() {
                               >
                                 <Check className="h-3.5 w-3.5 text-zinc-700 dark:text-zinc-300" />
                               </Button>
+                            )}
+                            {tx.receiptUrl && (
+                              <a 
+                                href={tx.receiptUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="inline-flex items-center justify-center h-7 w-7 text-zinc-450 hover:text-[#0B4F83] dark:hover:text-[#218FDE] rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors"
+                                title="Visualizar comprovante"
+                              >
+                                <Paperclip className="h-3.5 w-3.5" />
+                              </a>
                             )}
                             <Button 
                               variant="ghost" 
@@ -1408,19 +1408,7 @@ export default function TransactionsPage() {
                 </div>
 
                 <div className="p-4 space-y-4">
-                  {/* Descrição - Full Width */}
-                  <div>
-                    <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Descrição*</label>
-                    <Input 
-                      value={description} 
-                      onChange={(e) => setDescription(e.target.value)} 
-                      placeholder="Informe sobre a receita ou despesa..." 
-                      className="h-9 text-xs" 
-                      required 
-                    />
-                  </div>
-
-                  {/* Número Documento & Tipo */}
+                  {/* Número Documento & Descrição */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Número Documento</label>
@@ -1432,21 +1420,14 @@ export default function TransactionsPage() {
                       />
                     </div>
                     <div className="md:col-span-2">
-                      <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Tipo de Lançamento*</label>
-                      <Select value={type} onValueChange={(v: any) => {
-                        setType(v);
-                        const firstCat = categories.filter(c => c.type === v)[0]?.id || "";
-                        setCategoryId(firstCat);
-                      }}>
-                        <SelectTrigger className="w-full h-9 text-xs">
-                          <SelectValue>{type === 'expense' ? 'Despesa' : type === 'income' ? 'Receita' : type === 'transfer' ? 'Transferência' : ''}</SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="expense" className="text-xs">Despesa</SelectItem>
-                          <SelectItem value="income" className="text-xs">Receita</SelectItem>
-                          <SelectItem value="transfer" className="text-xs">Transferência</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Descrição*</label>
+                      <Input 
+                        value={description} 
+                        onChange={(e) => setDescription(e.target.value)} 
+                        placeholder="Informe sobre a receita ou despesa..." 
+                        className="h-9 text-xs" 
+                        required 
+                      />
                     </div>
                   </div>
 
@@ -1492,8 +1473,25 @@ export default function TransactionsPage() {
                     </div>
                   </div>
 
-                  {/* Categoria & Forma de Pagamento */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Tipo, Categoria & Forma de Pagamento */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Tipo de Lançamento*</label>
+                      <Select value={type} onValueChange={(v: any) => {
+                        setType(v);
+                        const firstCat = categories.filter(c => c.type === v)[0]?.id || "";
+                        setCategoryId(firstCat);
+                      }}>
+                        <SelectTrigger className="w-full h-9 text-xs">
+                          <SelectValue>{type === 'expense' ? 'Despesa' : type === 'income' ? 'Receita' : type === 'transfer' ? 'Transferência' : ''}</SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="expense" className="text-xs">Despesa</SelectItem>
+                          <SelectItem value="income" className="text-xs">Receita</SelectItem>
+                          <SelectItem value="transfer" className="text-xs">Transferência</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <div>
                       {type === "transfer" ? (
                         <>
@@ -1704,33 +1702,62 @@ export default function TransactionsPage() {
                   </div>
                   <div>
                     <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Comprovante</label>
-                    <div className="border border-dashed border-zinc-300 dark:border-zinc-800 hover:bg-zinc-50/50 dark:hover:bg-zinc-900/10 rounded-lg p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-all relative h-[110px]">
-                      <input 
-                        type="file" 
-                        accept="image/*,application/pdf" 
-                        onChange={handleFileUpload} 
-                        className="absolute inset-0 opacity-0 cursor-pointer" 
-                        disabled={isUploading} 
-                      />
+                    <div className={`border-dashed border rounded-lg p-4 flex flex-col items-center justify-center text-center transition-all relative h-[110px] ${
+                      receiptUrl 
+                        ? "border-zinc-300 dark:border-zinc-800 bg-zinc-50/20" 
+                        : "border-zinc-300 dark:border-zinc-800 hover:bg-zinc-50/50 dark:hover:bg-zinc-900/10 cursor-pointer"
+                    }`}>
+                      {!receiptUrl && !isUploading && (
+                        <input 
+                          type="file" 
+                          accept="image/*,application/pdf" 
+                          onChange={handleFileUpload} 
+                          className="absolute inset-0 opacity-0 cursor-pointer" 
+                          disabled={isUploading}
+                        />
+                      )}
                       {isUploading ? (
                         <p className="text-xs text-zinc-500 animate-pulse">Subindo arquivo...</p>
                       ) : receiptUrl ? (
-                        <div className="flex flex-col items-center">
-                          <CheckCircle className="h-6 w-6 text-emerald-600 dark:text-emerald-400 mb-1" />
-                          <span className="text-[10px] font-semibold text-zinc-700 dark:text-zinc-300 truncate max-w-[180px]" title={uploadedFileName}>
-                            {uploadedFileName}
-                          </span>
-                          <button 
-                            type="button" 
-                            onClick={(e) => {
-                              e.preventDefault();
-                              setReceiptUrl("");
-                              setUploadedFileName("");
-                            }}
-                            className="text-[9px] text-red-500 hover:underline mt-1 font-bold"
-                          >
-                            Excluir Comprovante
-                          </button>
+                        <div className="flex flex-col items-center justify-center w-full z-10">
+                          <div className="flex items-center gap-1.5 mb-1.5 min-w-0 max-w-full">
+                            <FileText className="h-4 w-4 text-[#0B4F83] dark:text-[#218FDE] flex-shrink-0" />
+                            <span className="text-[10px] font-semibold text-zinc-700 dark:text-white truncate" title={uploadedFileName}>
+                              {uploadedFileName}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <a
+                              href={receiptUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 px-2 py-1 text-[9px] font-bold rounded-md border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-900 text-zinc-700 dark:text-zinc-300"
+                              title="Visualizar Comprovante"
+                            >
+                              <Eye className="h-3 w-3" /> Ver
+                            </a>
+                            <a
+                              href={receiptUrl}
+                              download={uploadedFileName}
+                              className="inline-flex items-center gap-1 px-2 py-1 text-[9px] font-bold rounded-md border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-900 text-zinc-700 dark:text-zinc-300"
+                              title="Baixar Comprovante"
+                            >
+                              <Download className="h-3 w-3" /> Baixar
+                            </a>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setReceiptUrl("");
+                                setUploadedFileName("");
+                              }}
+                              className="inline-flex items-center gap-1 px-2 py-1 text-[9px] font-bold rounded-md border border-red-200 dark:border-red-950/40 hover:bg-red-50 dark:hover:bg-red-950/20 text-red-650 dark:text-red-400"
+                              title="Excluir Comprovante"
+                            >
+                              <Trash2 className="h-3 w-3" /> Excluir
+                            </button>
+                          </div>
                         </div>
                       ) : (
                         <>
@@ -1802,19 +1829,7 @@ export default function TransactionsPage() {
                 </div>
 
                 <div className="p-4 space-y-4">
-                  {/* Descrição - Full Width */}
-                  <div>
-                    <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Descrição*</label>
-                    <Input 
-                      value={description} 
-                      onChange={(e) => setDescription(e.target.value)} 
-                      placeholder="Informe sobre a receita ou despesa..." 
-                      className="h-9 text-xs" 
-                      required 
-                    />
-                  </div>
-
-                  {/* Número Documento & Tipo */}
+                  {/* Número Documento & Descrição */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Número Documento</label>
@@ -1826,21 +1841,14 @@ export default function TransactionsPage() {
                       />
                     </div>
                     <div className="md:col-span-2">
-                      <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Tipo de Lançamento*</label>
-                      <Select value={type} onValueChange={(v: any) => {
-                        setType(v);
-                        const firstCat = categories.filter(c => c.type === v)[0]?.id || "";
-                        setCategoryId(firstCat);
-                      }}>
-                        <SelectTrigger className="w-full h-9 text-xs">
-                          <SelectValue>{type === 'expense' ? 'Despesa' : type === 'income' ? 'Receita' : type === 'transfer' ? 'Transferência' : ''}</SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="expense" className="text-xs">Despesa</SelectItem>
-                          <SelectItem value="income" className="text-xs">Receita</SelectItem>
-                          <SelectItem value="transfer" className="text-xs">Transferência</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Descrição*</label>
+                      <Input 
+                        value={description} 
+                        onChange={(e) => setDescription(e.target.value)} 
+                        placeholder="Informe sobre a receita ou despesa..." 
+                        className="h-9 text-xs" 
+                        required 
+                      />
                     </div>
                   </div>
 
@@ -1886,8 +1894,25 @@ export default function TransactionsPage() {
                     </div>
                   </div>
 
-                  {/* Categoria & Forma de Pagamento */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Tipo, Categoria & Forma de Pagamento */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Tipo de Lançamento*</label>
+                      <Select value={type} onValueChange={(v: any) => {
+                        setType(v);
+                        const firstCat = categories.filter(c => c.type === v)[0]?.id || "";
+                        setCategoryId(firstCat);
+                      }}>
+                        <SelectTrigger className="w-full h-9 text-xs">
+                          <SelectValue>{type === 'expense' ? 'Despesa' : type === 'income' ? 'Receita' : type === 'transfer' ? 'Transferência' : ''}</SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="expense" className="text-xs">Despesa</SelectItem>
+                          <SelectItem value="income" className="text-xs">Receita</SelectItem>
+                          <SelectItem value="transfer" className="text-xs">Transferência</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <div>
                       {type === "transfer" ? (
                         <>
@@ -1985,33 +2010,62 @@ export default function TransactionsPage() {
                   </div>
                   <div>
                     <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Comprovante</label>
-                    <div className="border border-dashed border-zinc-300 dark:border-zinc-800 hover:bg-zinc-50/50 dark:hover:bg-zinc-900/10 rounded-lg p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-all relative h-[110px]">
-                      <input 
-                        type="file" 
-                        accept="image/*,application/pdf" 
-                        onChange={handleFileUpload} 
-                        className="absolute inset-0 opacity-0 cursor-pointer" 
-                        disabled={isUploading} 
-                      />
+                    <div className={`border-dashed border rounded-lg p-4 flex flex-col items-center justify-center text-center transition-all relative h-[110px] ${
+                      receiptUrl 
+                        ? "border-zinc-300 dark:border-zinc-800 bg-zinc-50/20" 
+                        : "border-zinc-300 dark:border-zinc-800 hover:bg-zinc-50/50 dark:hover:bg-zinc-900/10 cursor-pointer"
+                    }`}>
+                      {!receiptUrl && !isUploading && (
+                        <input 
+                          type="file" 
+                          accept="image/*,application/pdf" 
+                          onChange={handleFileUpload} 
+                          className="absolute inset-0 opacity-0 cursor-pointer" 
+                          disabled={isUploading}
+                        />
+                      )}
                       {isUploading ? (
                         <p className="text-xs text-zinc-500 animate-pulse">Subindo arquivo...</p>
                       ) : receiptUrl ? (
-                        <div className="flex flex-col items-center">
-                          <CheckCircle className="h-6 w-6 text-emerald-600 dark:text-emerald-400 mb-1" />
-                          <span className="text-[10px] font-semibold text-zinc-700 dark:text-zinc-300 truncate max-w-[180px]" title={uploadedFileName}>
-                            {uploadedFileName}
-                          </span>
-                          <button 
-                            type="button" 
-                            onClick={(e) => {
-                              e.preventDefault();
-                              setReceiptUrl("");
-                              setUploadedFileName("");
-                            }}
-                            className="text-[9px] text-red-500 hover:underline mt-1 font-bold"
-                          >
-                            Excluir Comprovante
-                          </button>
+                        <div className="flex flex-col items-center justify-center w-full z-10">
+                          <div className="flex items-center gap-1.5 mb-1.5 min-w-0 max-w-full">
+                            <FileText className="h-4 w-4 text-[#0B4F83] dark:text-[#218FDE] flex-shrink-0" />
+                            <span className="text-[10px] font-semibold text-zinc-700 dark:text-white truncate" title={uploadedFileName}>
+                              {uploadedFileName}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <a
+                              href={receiptUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 px-2 py-1 text-[9px] font-bold rounded-md border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-900 text-zinc-700 dark:text-zinc-300"
+                              title="Visualizar Comprovante"
+                            >
+                              <Eye className="h-3 w-3" /> Ver
+                            </a>
+                            <a
+                              href={receiptUrl}
+                              download={uploadedFileName}
+                              className="inline-flex items-center gap-1 px-2 py-1 text-[9px] font-bold rounded-md border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-900 text-zinc-700 dark:text-zinc-300"
+                              title="Baixar Comprovante"
+                            >
+                              <Download className="h-3 w-3" /> Baixar
+                            </a>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setReceiptUrl("");
+                                setUploadedFileName("");
+                              }}
+                              className="inline-flex items-center gap-1 px-2 py-1 text-[9px] font-bold rounded-md border border-red-200 dark:border-red-950/40 hover:bg-red-50 dark:hover:bg-red-950/20 text-red-650 dark:text-red-400"
+                              title="Excluir Comprovante"
+                            >
+                              <Trash2 className="h-3 w-3" /> Excluir
+                            </button>
+                          </div>
                         </div>
                       ) : (
                         <>

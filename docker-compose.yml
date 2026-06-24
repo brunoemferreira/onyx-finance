@@ -29,7 +29,10 @@ services:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
     depends_on:
       - postgres
+    volumes:
+      - uploads:/app/public/uploads
     restart: always
 
 volumes:
   pgdata:
+  uploads:
