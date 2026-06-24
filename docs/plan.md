@@ -30,8 +30,6 @@ Este documento serve como o roteiro (roadmap) oficial de desenvolvimento do proj
 - [ ] **Dados de Perfil:** Atualizar a barra lateral para exibir dinamicamente o nome, e-mail e foto do usuário vindo da sessão real ativa.
 - [ ] **Página de Perfil:** Criar uma página de perfil dedicada (ex: `/dashboard/profile`) permitindo visualizar as informações cadastrais do usuário e histórico da conta.
 
-
-
 ### **Fase 6: Integração SaaS e Stripe (Fase Final)**
 - [ ] **Assinatura Premium:** Implementar fluxo de checkout via Stripe Checkout para o plano Premium.
 - [ ] **Portal do Assinante:** Habilitar portal Stripe Billing para gerenciamento de faturamento e cancelamento.

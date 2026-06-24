@@ -29,6 +29,7 @@ export async function getTransactions() {
         categoryName: categories.name,
         categoryId: categories.id,
         toAccountName: drizzleSql<string | null>`(SELECT name FROM bank_account WHERE id = ${transactions.toAccountId})`,
+        documentNumber: transactions.documentNumber,
       })
       .from(transactions)
       .innerJoin(bankAccounts, eq(transactions.accountId, bankAccounts.id))
@@ -61,12 +62,15 @@ export async function createTransaction(data: {
   totalInstallments?: number;
   isRecurring?: boolean;
   recurrencePeriod?: "none" | "weekly" | "monthly" | "yearly";
+  isCleared?: boolean;
+  documentNumber?: string;
 }) {
   const userId = await getUserId();
   // Parse date as UTC midnight to avoid local timezone shifts
   const [y, m, d] = data.date.split("-").map(Number);
   const baseDate = new Date(Date.UTC(y, m - 1, d));
   const numAmount = parseFloat(data.amount);
+  const isCleared = data.isCleared ?? false;
   
   try {
     // Caso 1: Lançamento Parcelado (Instalment)
@@ -92,16 +96,19 @@ export async function createTransaction(data: {
             currentInstallment: i,
             totalInstallments: data.totalInstallments,
             parentId,
-            isCleared: i === 1, // Apenas a primeira parcela entra como efetivada por padrão
+            isCleared: i === 1 ? isCleared : false,
+            documentNumber: data.documentNumber || null,
           })
         );
       }
 
       await Promise.all(insertPromises);
 
-      // Atualiza o saldo apenas com a primeira parcela
-      const factor = data.type === "income" ? 1 : -1;
-      await updateAccountBalance(data.accountId, parseFloat(installmentAmount) * factor);
+      // Atualiza o saldo apenas com a primeira parcela se ela for liquidada
+      if (isCleared) {
+        const factor = data.type === "income" ? 1 : -1;
+        await updateAccountBalance(data.accountId, parseFloat(installmentAmount) * factor);
+      }
     }
     // Caso 2: Lançamento Recorrente (Simulação de 12 meses adiantados)
     else if (data.isRecurring && data.recurrencePeriod && data.recurrencePeriod !== "none") {
@@ -131,16 +138,19 @@ export async function createTransaction(data: {
             isRecurring: true,
             recurrencePeriod: data.recurrencePeriod,
             parentId,
-            isCleared: i === 0, // Apenas o primeiro mês entra como efetivado
+            isCleared: i === 0 ? isCleared : false,
+            documentNumber: data.documentNumber || null,
           })
         );
       }
 
       await Promise.all(insertPromises);
 
-      // Atualiza o saldo da conta com a primeira recorrência
-      const factor = data.type === "income" ? 1 : -1;
-      await updateAccountBalance(data.accountId, numAmount * factor);
+      // Atualiza o saldo da conta com a primeira recorrência se for liquidada
+      if (isCleared) {
+        const factor = data.type === "income" ? 1 : -1;
+        await updateAccountBalance(data.accountId, numAmount * factor);
+      }
     }
     // Caso 3: Lançamento Simples ou Transferência
     else {
@@ -153,17 +163,20 @@ export async function createTransaction(data: {
         type: data.type,
         date: baseDate,
         description: data.description,
-        isCleared: true,
+        isCleared: isCleared,
+        documentNumber: data.documentNumber || null,
       }).returning();
 
-      // Ajusta Saldos
-      if (data.type === "transfer" && data.toAccountId) {
-        // Retira da de origem, adiciona na de destino
-        await updateAccountBalance(data.accountId, -numAmount);
-        await updateAccountBalance(data.toAccountId, numAmount);
-      } else {
-        const factor = data.type === "income" ? 1 : -1;
-        await updateAccountBalance(data.accountId, numAmount * factor);
+      // Ajusta Saldos se for liquidado
+      if (newTx.isCleared) {
+        if (data.type === "transfer" && data.toAccountId) {
+          // Retira da de origem, adiciona na de destino
+          await updateAccountBalance(data.accountId, -numAmount);
+          await updateAccountBalance(data.toAccountId, numAmount);
+        } else {
+          const factor = data.type === "income" ? 1 : -1;
+          await updateAccountBalance(data.accountId, numAmount * factor);
+        }
       }
     }
 
@@ -188,6 +201,7 @@ export async function updateTransaction(
     accountId: string;
     categoryId?: string;
     toAccountId?: string;
+    documentNumber?: string;
   }
 ) {
   const userId = await getUserId();
@@ -229,6 +243,7 @@ export async function updateTransaction(
         accountId: data.accountId,
         categoryId: data.type === "transfer" ? null : data.categoryId || null,
         toAccountId: data.type === "transfer" ? data.toAccountId : null,
+        documentNumber: data.documentNumber || null,
       })
       .where(and(eq(transactions.id, id), eq(transactions.userId, userId)))
       .returning();

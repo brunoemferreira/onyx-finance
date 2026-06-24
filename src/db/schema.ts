@@ -135,6 +135,7 @@ export const transactions = pgTable("transaction", {
   toAccountId: uuid("to_account_id").references(() => bankAccounts.id, { onDelete: "set null" }),
   
   isCleared: boolean("is_cleared").default(true).notNull(), // Efetivado / Pago
+  documentNumber: text("document_number"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

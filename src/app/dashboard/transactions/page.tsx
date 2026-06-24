@@ -113,6 +113,7 @@ type Transaction = {
   categoryName: string | null;
   categoryId: string | null;
   toAccountName: string | null;
+  documentNumber: string | null;
 };
 
 const formatDate = (dateInput: Date | string) => {
@@ -348,6 +349,12 @@ export default function TransactionsPage() {
   const [accountId, setAccountId] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [toAccountId, setToAccountId] = useState("");
+  const [documentNumber, setDocumentNumber] = useState("");
+  const [isClearedForm, setIsClearedForm] = useState(false);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
   // Installment / Recurrence states
   const [isInstallment, setIsInstallment] = useState(false);
@@ -383,6 +390,8 @@ export default function TransactionsPage() {
     setDate(new Date().toISOString().split("T")[0]);
     if (accounts.length > 0) setAccountId(accounts[0].id);
     setCategoryId(categories.filter(c => c.type === "expense")[0]?.id || "");
+    setDocumentNumber("");
+    setIsClearedForm(false);
     setIsInstallment(false);
     setIsRecurring(false);
     setIsCreateOpen(true);
@@ -397,6 +406,8 @@ export default function TransactionsPage() {
     setAccountId(tx.accountId);
     setCategoryId(tx.categoryId || "");
     setToAccountId(tx.toAccountName ? accounts.find(a => a.name === tx.toAccountName)?.id || "" : "");
+    setDocumentNumber(tx.documentNumber || "");
+    setIsClearedForm(tx.isCleared);
     setIsEditOpen(true);
   };
 
@@ -420,6 +431,8 @@ export default function TransactionsPage() {
         totalInstallments: type === "expense" && isInstallment ? parseInt(totalInstallments) : undefined,
         isRecurring: isRecurring,
         recurrencePeriod: isRecurring ? recurrencePeriod : "none",
+        isCleared: isClearedForm,
+        documentNumber: documentNumber || undefined,
       });
       setIsCreateOpen(false);
       loadData();
@@ -440,6 +453,7 @@ export default function TransactionsPage() {
         accountId,
         categoryId: type !== "transfer" ? categoryId || undefined : undefined,
         toAccountId: type === "transfer" ? toAccountId : undefined,
+        documentNumber: documentNumber || undefined,
       });
       setIsEditOpen(false);
       loadData();
@@ -594,6 +608,59 @@ export default function TransactionsPage() {
     return "Transferência";
   };
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const metrics = filteredTransactions.reduce((acc, tx) => {
+    const amount = parseFloat(tx.amount);
+    const txDate = new Date(tx.date);
+    const isPast = txDate < today;
+
+    // Total Geral
+    if (tx.type === "income") {
+      acc.totalGeral += amount;
+    } else if (tx.type === "expense") {
+      acc.totalGeral -= amount;
+    }
+
+    if (tx.type === "expense") {
+      if (!tx.isCleared) {
+        acc.totalAPagar += amount;
+        if (isPast) {
+          acc.totalVencidas += amount;
+        } else {
+          acc.totalAVencer += amount;
+        }
+      } else {
+        acc.totalPagos += amount;
+      }
+    }
+    return acc;
+  }, {
+    totalVencidas: 0,
+    totalAVencer: 0,
+    totalAPagar: 0,
+    totalPagos: 0,
+    totalGeral: 0,
+  });
+
+  const totalPages = Math.ceil(sortedTransactions.length / pageSize);
+  const paginatedTransactions = sortedTransactions.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
+  useEffect(() => {
+    const pages = Math.ceil(sortedTransactions.length / pageSize);
+    if (currentPage > pages && pages > 0) {
+      setCurrentPage(pages);
+    }
+  }, [sortedTransactions.length, pageSize, currentPage]);
+
+  const formatCurrency = (val: number) => {
+    return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val);
+  };
+
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
@@ -609,6 +676,136 @@ export default function TransactionsPage() {
         >
           <Plus className="mr-1.5 h-4 w-4" /> Novo Lançamento
         </Button>
+      </div>
+
+      {/* Cards de Resumo */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+        {/* Vencidas */}
+        <div className="rounded-2xl border border-red-200/50 dark:border-red-950/40 bg-red-50/10 dark:bg-red-950/5 p-4 shadow-sm hover:scale-[1.01] transition-all">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-red-500/85 dark:text-red-400/80">Vencidas</p>
+          <p className="text-xl font-bold text-red-650 dark:text-red-400 mt-1">{formatCurrency(metrics.totalVencidas)}</p>
+        </div>
+
+        {/* A Vencer */}
+        <div className="rounded-2xl border border-amber-200/50 dark:border-amber-950/40 bg-amber-50/10 dark:bg-amber-950/5 p-4 shadow-sm hover:scale-[1.01] transition-all">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-amber-500/85 dark:text-amber-400/80">A Vencer</p>
+          <p className="text-xl font-bold text-amber-650 dark:text-amber-450 mt-1">{formatCurrency(metrics.totalAVencer)}</p>
+        </div>
+
+        {/* A Pagar */}
+        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-850 bg-zinc-50/50 dark:bg-zinc-900/10 p-4 shadow-sm hover:scale-[1.01] transition-all">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">A Pagar</p>
+          <p className="text-xl font-bold text-zinc-800 dark:text-zinc-200 mt-1">{formatCurrency(metrics.totalAPagar)}</p>
+        </div>
+
+        {/* Pagos */}
+        <div className="rounded-2xl border border-emerald-200/50 dark:border-emerald-950/40 bg-emerald-50/10 dark:bg-emerald-950/5 p-4 shadow-sm hover:scale-[1.01] transition-all">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-500/85 dark:text-emerald-450/85">Pagos</p>
+          <p className="text-xl font-bold text-emerald-650 dark:text-emerald-400 mt-1">{formatCurrency(metrics.totalPagos)}</p>
+        </div>
+
+        {/* Total Geral */}
+        <div className="rounded-2xl border border-zinc-300 dark:border-zinc-800 bg-zinc-100/50 dark:bg-zinc-900/30 p-4 shadow-sm hover:scale-[1.01] transition-all">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-650 dark:text-zinc-300">Total Geral</p>
+          <p className={`text-xl font-bold mt-1 ${metrics.totalGeral >= 0 ? "text-emerald-650 dark:text-emerald-450" : "text-red-650 dark:text-red-400"}`}>
+            {formatCurrency(metrics.totalGeral)}
+          </p>
+        </div>
+      </div>
+
+      {/* Paginação Personalizada (Igual à Imagem) */}
+      <div className="flex items-center justify-between bg-white dark:bg-zinc-950 px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-900 text-zinc-500 text-xs">
+        <div className="flex items-center gap-3">
+          <span className="text-zinc-500 dark:text-zinc-400">Itens por página:</span>
+          <div className="flex items-center gap-2">
+            {[15, 50, 100].map((size) => (
+              <button
+                key={size}
+                type="button"
+                onClick={() => {
+                  setPageSize(size);
+                  setCurrentPage(1);
+                }}
+                className={`px-3 py-1 text-xs font-semibold rounded transition-all cursor-pointer ${
+                  pageSize === size
+                    ? "bg-[#0B4F83] text-white"
+                    : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+                }`}
+              >
+                {size}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1">
+          {(() => {
+            const pageButtons = [];
+            const maxVisiblePages = 5;
+
+            const addPageButton = (page: number) => {
+              pageButtons.push(
+                <button
+                  key={page}
+                  type="button"
+                  onClick={() => setCurrentPage(page)}
+                  className={`h-7 w-7 flex items-center justify-center text-xs font-semibold rounded transition-all cursor-pointer ${
+                    currentPage === page
+                      ? "bg-[#0B4F83] text-white"
+                      : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+                  }`}
+                >
+                  {page}
+                </button>
+              );
+            };
+
+            if (totalPages <= maxVisiblePages) {
+              for (let i = 1; i <= totalPages; i++) {
+                addPageButton(i);
+              }
+            } else {
+              addPageButton(1);
+              let start = Math.max(2, currentPage - 1);
+              let end = Math.min(totalPages - 1, currentPage + 1);
+
+              if (currentPage <= 3) {
+                end = 4;
+              }
+              if (currentPage >= totalPages - 2) {
+                start = totalPages - 3;
+              }
+
+              if (start > 2) {
+                pageButtons.push(<span key="ellipsis-1" className="text-xs text-zinc-450 px-1 select-none">...</span>);
+              }
+
+              for (let i = start; i <= end; i++) {
+                addPageButton(i);
+              }
+
+              if (end < totalPages - 1) {
+                pageButtons.push(<span key="ellipsis-2" className="text-xs text-zinc-450 px-1 select-none">...</span>);
+              }
+
+              addPageButton(totalPages);
+            }
+
+            return (
+              <>
+                {pageButtons}
+                <button
+                  type="button"
+                  disabled={currentPage === totalPages || totalPages === 0}
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  className="h-7 w-7 flex items-center justify-center text-zinc-500 hover:text-zinc-700 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </>
+            );
+          })()}
+        </div>
       </div>
 
       {/* Filtros Container */}
@@ -757,13 +954,13 @@ export default function TransactionsPage() {
             <Table>
               <TableHeader className="bg-zinc-50/50 dark:bg-zinc-900/30">
                 <TableRow className="border-zinc-200 dark:border-zinc-900 h-9">
-                  <TableHead className="px-4 text-xs font-medium w-36">Status</TableHead>
+                  <TableHead className="px-4 text-xs font-medium w-32">Nº Documento</TableHead>
                   <TableHead 
                     className="text-xs font-medium cursor-pointer select-none hover:bg-zinc-100/50 dark:hover:bg-zinc-900/50 px-2 rounded-lg transition-colors"
                     onClick={() => handleSort("date")}
                   >
                     <div className="flex items-center gap-1">
-                      Data {renderSortArrow("date")}
+                      Vencimento {renderSortArrow("date")}
                     </div>
                   </TableHead>
                   <TableHead 
@@ -774,6 +971,7 @@ export default function TransactionsPage() {
                       Descrição {renderSortArrow("description")}
                     </div>
                   </TableHead>
+                  <TableHead className="px-4 text-xs font-medium w-32">Status</TableHead>
                   <TableHead 
                     className="text-xs font-medium cursor-pointer select-none hover:bg-zinc-100/50 dark:hover:bg-zinc-900/50 px-2 rounded-lg transition-colors"
                     onClick={() => handleSort("categoryName")}
@@ -803,40 +1001,44 @@ export default function TransactionsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                              {sortedTransactions.map((tx, idx) => {
+                {paginatedTransactions.map((tx, idx) => {
                   const isInc = tx.type === "income";
                   const isTrans = tx.type === "transfer";
                   const dateStr = formatDate(tx.date);
 
-                  const nextTx = sortedTransactions[idx + 1];
+                  const nextTx = paginatedTransactions[idx + 1];
                   const isLastOfToday = !nextTx || formatDate(nextTx.date) !== dateStr;
+
+                  // Status badge calculations
+                  const isCleared = tx.isCleared;
+                  const txDate = new Date(tx.date);
+                  const isPast = txDate < today;
+
+                  let statusText = "";
+                  let badgeClass = "";
+
+                  if (isCleared) {
+                    statusText = tx.type === "income" ? "RECEBIDO" : "PAGO";
+                    badgeClass = "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200/50 dark:border-emerald-900/30";
+                  } else {
+                    if (isPast) {
+                      statusText = "VENCIDO";
+                      badgeClass = "bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-400 border-red-200/50 dark:border-red-900/30";
+                    } else {
+                      statusText = "A VENCER";
+                      badgeClass = "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200/50 dark:border-amber-900/30";
+                    }
+                  }
 
                   return (
                     <React.Fragment key={tx.id}>
                       <TableRow className="border-zinc-200 dark:border-zinc-900 hover:bg-zinc-50/50 dark:hover:bg-zinc-900/20 h-8">
-                        {/* 1. Status */}
-                        <TableCell className="py-1 px-4 text-xs flex items-center gap-2">
-                          <div className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 ${
-                            isInc 
-                              ? "bg-zinc-100 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200" 
-                              : isTrans
-                                ? "bg-zinc-100 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200"
-                                : "bg-zinc-200/40 dark:bg-zinc-900/40 text-zinc-500"
-                          }`}>
-                            {isInc ? <ArrowUpRight className="h-3 w-3" /> : isTrans ? <RefreshCw className="h-3 w-3" /> : <ArrowDownLeft className="h-3 w-3" />}
-                          </div>
-                          {tx.isCleared ? (
-                            <span className="inline-flex items-center rounded bg-zinc-100 dark:bg-zinc-900 px-1.5 py-0.5 text-[9px] font-bold text-zinc-800 dark:text-zinc-300">
-                              Liquidado
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center rounded bg-zinc-200/50 dark:bg-zinc-900/50 px-1.5 py-0.5 text-[9px] font-bold text-zinc-500">
-                              Pendente
-                            </span>
-                          )}
+                        {/* 1. Nº Documento */}
+                        <TableCell className="py-1 px-4 text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                          {tx.documentNumber || "-"}
                         </TableCell>
 
-                        {/* 2. Data */}
+                        {/* 2. Vencimento */}
                         <TableCell className="py-1 text-xs text-zinc-500 dark:text-zinc-400">{formatDate(tx.date)}</TableCell>
 
                         {/* 3. Descrição */}
@@ -849,7 +1051,14 @@ export default function TransactionsPage() {
                           </div>
                         </TableCell>
 
-                        {/* 4. Categoria */}
+                        {/* 4. Status Badge */}
+                        <TableCell className="py-1 px-4 text-xs">
+                          <span className={`inline-flex items-center rounded border px-2 py-0.5 text-[9px] font-bold ${badgeClass}`}>
+                            {statusText}
+                          </span>
+                        </TableCell>
+
+                        {/* 5. Categoria */}
                         <TableCell className="py-1 text-xs">
                           {isTrans ? (
                             <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 dark:bg-zinc-900 px-2 py-0.5 text-[9px] font-semibold text-zinc-700 dark:text-zinc-300">
@@ -878,10 +1087,10 @@ export default function TransactionsPage() {
                           )}
                         </TableCell>
 
-                        {/* 5. Conta */}
+                        {/* 6. Conta */}
                         <TableCell className="py-1 text-xs text-zinc-500 dark:text-zinc-400">{tx.accountName}</TableCell>
 
-                        {/* 6. Valor */}
+                        {/* 7. Valor */}
                         <TableCell className={`text-right py-1 text-xs font-normal ${
                           isInc 
                             ? "text-emerald-600 dark:text-emerald-400" 
@@ -892,7 +1101,7 @@ export default function TransactionsPage() {
                           {isInc ? "+" : isTrans ? "" : "-"} {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parseFloat(tx.amount))}
                         </TableCell>
 
-                        {/* 7. Saldo */}
+                        {/* 8. Saldo */}
                         {showBalances && (
                           <TableCell className="text-right py-1 text-xs text-zinc-500 dark:text-zinc-400 font-semibold">
                             {computedTxBalances[tx.id] !== undefined
@@ -901,7 +1110,7 @@ export default function TransactionsPage() {
                           </TableCell>
                         )}
 
-                        {/* 8. Ações */}
+                        {/* 9. Ações */}
                         <TableCell className="px-4 py-1 text-right">
                           <div className="flex items-center justify-end gap-1">
                             {tx.isCleared ? (
@@ -948,7 +1157,7 @@ export default function TransactionsPage() {
                       </TableRow>
                       {isLastOfToday && (
                         <TableRow className="bg-zinc-50/20 dark:bg-zinc-900/10 hover:bg-zinc-50/20 dark:hover:bg-zinc-900/10 border-b border-zinc-100 dark:border-zinc-900/40">
-                          <TableCell colSpan={5} className="py-2 px-4 text-xs font-semibold text-zinc-500 dark:text-zinc-400 text-right select-none">
+                          <TableCell colSpan={6} className="py-2 px-4 text-xs font-semibold text-zinc-500 dark:text-zinc-400 text-right select-none">
                             Saldo previsto no final do dia:
                           </TableCell>
                           <TableCell className="text-right py-2 px-2 font-black text-xs text-zinc-900 dark:text-zinc-50 whitespace-nowrap">
@@ -969,20 +1178,26 @@ export default function TransactionsPage() {
 
       {/* 1. Modal de Criação (Novo Lançamento) */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950">
+        <DialogContent className="border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950 sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Novo Lançamento Financeiro</DialogTitle>
             <DialogDescription>Insira os detalhes da transação financeira.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreateSubmit} className="space-y-4">
-            <div>
-              <label className="text-xs font-semibold text-zinc-500 block mb-1">Descrição</label>
-              <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Ex: Mercado, Academia, Salário..." required />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-semibold text-zinc-550 block mb-1">Nº Documento</label>
+                <Input value={documentNumber} onChange={(e) => setDocumentNumber(e.target.value)} placeholder="Ex: NF-12345, Fatura..." />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-zinc-550 block mb-1">Descrição</label>
+                <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Ex: Mercado, Academia, Salário..." required />
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-semibold text-zinc-500 block mb-1">Tipo</label>
+                <label className="text-xs font-semibold text-zinc-550 block mb-1">Tipo</label>
                 <Select value={type} onValueChange={(v: any) => {
                   setType(v);
                   // Reseta categorias ao mudar tipo
@@ -999,19 +1214,71 @@ export default function TransactionsPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <label className="text-xs font-semibold text-zinc-500 block mb-1">Valor (R$)</label>
-                <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required />
-              </div>
+
+              {type === "transfer" ? (
+                <div>
+                  <label className="text-xs font-semibold text-zinc-550 block mb-1">Conta Destino</label>
+                  {accounts.length > 0 && (
+                    <Select value={toAccountId} onValueChange={(val) => val && setToAccountId(val)}>
+                      <SelectTrigger className="w-full h-8 text-xs">
+                        <SelectValue>{accounts.find(a => a.id === toAccountId)?.name}</SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {accounts.filter(a => a.id !== accountId).map((acc) => (
+                          <SelectItem key={acc.id} value={acc.id} className="text-xs">{acc.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <label className="text-xs font-semibold text-zinc-550 block mb-1">Categoria</label>
+                  {categories.length > 0 && (
+                    <Select value={categoryId} onValueChange={(val) => val && setCategoryId(val)}>
+                      <SelectTrigger className="w-full h-8 text-xs">
+                        <SelectValue>
+                          {(() => {
+                            const cat = categories.find(c => c.id === categoryId);
+                            const CatIcon = getCategoryIcon(cat?.icon || "tag");
+                            return (
+                              <div className="flex items-center gap-1.5">
+                                <CatIcon className="h-3.5 w-3.5 text-zinc-500" />
+                                <span>{getCategoryNameFormatted(cat)}</span>
+                              </div>
+                            );
+                          })()}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {getSortedSelectCategories(type).map((cat) => {
+                          const CatIcon = getCategoryIcon(cat.icon);
+                          const isSub = !!cat.parentId;
+                          return (
+                            <SelectItem key={cat.id} value={cat.id} className="text-xs">
+                              <div className="flex items-center gap-1.5">
+                                <CatIcon className="h-3.5 w-3.5 text-zinc-500" />
+                                <span className={isSub ? "pl-2 font-normal text-zinc-650 dark:text-zinc-400" : "font-bold text-zinc-900 dark:text-zinc-100"}>
+                                  {isSub ? `↳ ${cat.name}` : cat.name}
+                                </span>
+                              </div>
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-semibold text-zinc-500 block mb-1">Data</label>
+                <label className="text-xs font-semibold text-zinc-550 block mb-1">Data de Vencimento</label>
                 <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
               </div>
               <div>
-                <label className="text-xs font-semibold text-zinc-500 block mb-1">
+                <label className="text-xs font-semibold text-zinc-550 block mb-1">
                   {type === "transfer" ? "Conta Origem" : "Conta / Cartão"}
                 </label>
                 {accounts.length > 0 && (
@@ -1029,61 +1296,24 @@ export default function TransactionsPage() {
               </div>
             </div>
 
-            {type === "transfer" ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-semibold text-zinc-500 block mb-1">Conta Destino</label>
-                {accounts.length > 0 && (
-                  <Select value={toAccountId} onValueChange={(val) => val && setToAccountId(val)}>
-                    <SelectTrigger className="w-full h-8 text-xs">
-                      <SelectValue>{accounts.find(a => a.id === toAccountId)?.name}</SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {accounts.filter(a => a.id !== accountId).map((acc) => (
-                        <SelectItem key={acc.id} value={acc.id} className="text-xs">{acc.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
+                <label className="text-xs font-semibold text-zinc-550 block mb-1">Valor (R$)</label>
+                <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required />
               </div>
-            ) : (
-              <div>
-                <label className="text-xs font-semibold text-zinc-500 block mb-1">Categoria</label>
-                {categories.length > 0 && (
-                  <Select value={categoryId} onValueChange={(val) => val && setCategoryId(val)}>
-                    <SelectTrigger className="w-full h-8 text-xs">
-                      <SelectValue>
-                        {(() => {
-                          const cat = categories.find(c => c.id === categoryId);
-                          const CatIcon = getCategoryIcon(cat?.icon || "tag");
-                          return (
-                            <div className="flex items-center gap-1.5">
-                              <CatIcon className="h-3.5 w-3.5 text-zinc-500" />
-                              <span>{getCategoryNameFormatted(cat)}</span>
-                            </div>
-                          );
-                        })()}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {getSortedSelectCategories(type).map((cat) => {
-                        const CatIcon = getCategoryIcon(cat.icon);
-                        const isSub = !!cat.parentId;
-                        return (
-                          <SelectItem key={cat.id} value={cat.id} className="text-xs">
-                            <div className="flex items-center gap-1.5">
-                              <CatIcon className="h-3.5 w-3.5 text-zinc-500" />
-                              <span className={isSub ? "pl-2 font-normal text-zinc-650 dark:text-zinc-400" : "font-bold text-zinc-900 dark:text-zinc-100"}>
-                                {isSub ? `↳ ${cat.name}` : cat.name}
-                              </span>
-                            </div>
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                )}
+              <div className="flex items-center gap-2 pt-5">
+                <input 
+                  type="checkbox" 
+                  id="isClearedForm" 
+                  checked={isClearedForm} 
+                  onChange={(e) => setIsClearedForm(e.target.checked)} 
+                  className="rounded border-zinc-350 text-zinc-950 focus:ring-zinc-950 dark:border-zinc-800 h-4 w-4 cursor-pointer"
+                />
+                <label htmlFor="isClearedForm" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 cursor-pointer select-none">
+                  Lançamento pago/recebido (Liquidado)
+                </label>
               </div>
-            )}
+            </div>
 
             {/* Recorrência / Parcelamento */}
             {type !== "transfer" && (
@@ -1098,9 +1328,9 @@ export default function TransactionsPage() {
                         setIsInstallment(e.target.checked);
                         if (e.target.checked) setIsRecurring(false);
                       }} 
-                      className="rounded border-zinc-300 text-zinc-950 focus:ring-zinc-950 dark:border-zinc-800"
+                      className="rounded border-zinc-300 text-zinc-950 focus:ring-zinc-950 dark:border-zinc-800 cursor-pointer"
                     />
-                    <label htmlFor="isInstallment" className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Compra parcelada</label>
+                    <label htmlFor="isInstallment" className="text-xs font-medium text-zinc-700 dark:text-zinc-300 cursor-pointer">Compra parcelada</label>
                   </div>
                 )}
 
@@ -1120,9 +1350,9 @@ export default function TransactionsPage() {
                       setIsRecurring(e.target.checked);
                       if (e.target.checked) setIsInstallment(false);
                     }} 
-                    className="rounded border-zinc-300 text-zinc-950 focus:ring-zinc-950 dark:border-zinc-800"
+                    className="rounded border-zinc-300 text-zinc-950 focus:ring-zinc-950 dark:border-zinc-800 cursor-pointer"
                   />
-                  <label htmlFor="isRecurring" className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Lançamento recorrente fixo</label>
+                  <label htmlFor="isRecurring" className="text-xs font-medium text-zinc-700 dark:text-zinc-300 cursor-pointer">Lançamento recorrente fixo</label>
                 </div>
 
                 {isRecurring && (
@@ -1154,20 +1384,26 @@ export default function TransactionsPage() {
 
       {/* 2. Modal de Edição (Editar Lançamento) */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950">
+        <DialogContent className="border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950 sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Editar Lançamento</DialogTitle>
             <DialogDescription>Modifique as propriedades deste lançamento.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleEditSubmit} className="space-y-4">
-            <div>
-              <label className="text-xs font-semibold text-zinc-500 block mb-1">Descrição</label>
-              <Input value={description} onChange={(e) => setDescription(e.target.value)} required />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-semibold text-zinc-550 block mb-1">Nº Documento</label>
+                <Input value={documentNumber} onChange={(e) => setDocumentNumber(e.target.value)} placeholder="Ex: NF-12345, Fatura..." />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-zinc-550 block mb-1">Descrição</label>
+                <Input value={description} onChange={(e) => setDescription(e.target.value)} required />
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-semibold text-zinc-500 block mb-1">Tipo</label>
+                <label className="text-xs font-semibold text-zinc-550 block mb-1">Tipo</label>
                 <Select value={type} onValueChange={(v: any) => {
                   setType(v);
                   const firstCat = categories.filter(c => c.type === v)[0]?.id || "";
@@ -1183,19 +1419,71 @@ export default function TransactionsPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <label className="text-xs font-semibold text-zinc-500 block mb-1">Valor (R$)</label>
-                <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required />
-              </div>
+
+              {type === "transfer" ? (
+                <div>
+                  <label className="text-xs font-semibold text-zinc-550 block mb-1">Conta Destino</label>
+                  {accounts.length > 0 && (
+                    <Select value={toAccountId} onValueChange={(val) => val && setToAccountId(val)}>
+                      <SelectTrigger className="w-full h-8 text-xs">
+                        <SelectValue>{accounts.find(a => a.id === toAccountId)?.name}</SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {accounts.filter(a => a.id !== accountId).map((acc) => (
+                          <SelectItem key={acc.id} value={acc.id} className="text-xs">{acc.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <label className="text-xs font-semibold text-zinc-550 block mb-1">Categoria</label>
+                  {categories.length > 0 && (
+                    <Select value={categoryId} onValueChange={(val) => val && setCategoryId(val)}>
+                      <SelectTrigger className="w-full h-8 text-xs">
+                        <SelectValue>
+                          {(() => {
+                            const cat = categories.find(c => c.id === categoryId);
+                            const CatIcon = getCategoryIcon(cat?.icon || "tag");
+                            return (
+                              <div className="flex items-center gap-1.5">
+                                <CatIcon className="h-3.5 w-3.5 text-zinc-500" />
+                                <span>{getCategoryNameFormatted(cat)}</span>
+                              </div>
+                            );
+                          })()}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {getSortedSelectCategories(type).map((cat) => {
+                          const CatIcon = getCategoryIcon(cat.icon);
+                          const isSub = !!cat.parentId;
+                          return (
+                            <SelectItem key={cat.id} value={cat.id} className="text-xs">
+                              <div className="flex items-center gap-1.5">
+                                <CatIcon className="h-3.5 w-3.5 text-zinc-500" />
+                                <span className={isSub ? "pl-2 font-normal text-zinc-650 dark:text-zinc-400" : "font-bold text-zinc-900 dark:text-zinc-100"}>
+                                  {isSub ? `↳ ${cat.name}` : cat.name}
+                                </span>
+                              </div>
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-semibold text-zinc-500 block mb-1">Data</label>
+                <label className="text-xs font-semibold text-zinc-550 block mb-1">Data de Vencimento</label>
                 <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
               </div>
               <div>
-                <label className="text-xs font-semibold text-zinc-500 block mb-1">Conta / Cartão</label>
+                <label className="text-xs font-semibold text-zinc-550 block mb-1">Conta / Cartão</label>
                 {accounts.length > 0 && (
                   <Select value={accountId} onValueChange={(val) => val && setAccountId(val)}>
                     <SelectTrigger className="w-full h-8 text-xs">
@@ -1211,62 +1499,12 @@ export default function TransactionsPage() {
               </div>
             </div>
 
-            {type === "transfer" ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-semibold text-zinc-500 block mb-1">Conta Destino</label>
-                {accounts.length > 0 && (
-                  <Select value={toAccountId} onValueChange={(val) => val && setToAccountId(val)}>
-                    <SelectTrigger className="w-full h-8 text-xs">
-                      <SelectValue>{accounts.find(a => a.id === toAccountId)?.name}</SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {accounts.filter(a => a.id !== accountId).map((acc) => (
-                        <SelectItem key={acc.id} value={acc.id} className="text-xs">{acc.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
+                <label className="text-xs font-semibold text-zinc-550 block mb-1">Valor (R$)</label>
+                <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required />
               </div>
-            ) : (
-              <div>
-                <label className="text-xs font-semibold text-zinc-500 block mb-1">Categoria</label>
-                {categories.length > 0 && (
-                  <Select value={categoryId} onValueChange={(val) => val && setCategoryId(val)}>
-                    <SelectTrigger className="w-full h-8 text-xs">
-                      <SelectValue>
-                        {(() => {
-                          const cat = categories.find(c => c.id === categoryId);
-                          const CatIcon = getCategoryIcon(cat?.icon || "tag");
-                          return (
-                            <div className="flex items-center gap-1.5">
-                              <CatIcon className="h-3.5 w-3.5 text-zinc-500" />
-                              <span>{getCategoryNameFormatted(cat)}</span>
-                            </div>
-                          );
-                        })()}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {getSortedSelectCategories(type).map((cat) => {
-                        const CatIcon = getCategoryIcon(cat.icon);
-                        const isSub = !!cat.parentId;
-                        return (
-                          <SelectItem key={cat.id} value={cat.id} className="text-xs">
-                            <div className="flex items-center gap-1.5">
-                              <CatIcon className="h-3.5 w-3.5 text-zinc-500" />
-                              <span className={isSub ? "pl-2 font-normal text-zinc-650 dark:text-zinc-400" : "font-bold text-zinc-900 dark:text-zinc-100"}>
-                                {isSub ? `↳ ${cat.name}` : cat.name}
-                              </span>
-                            </div>
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-            )}
-
+            </div>
             <DialogFooter>
               <Button type="submit" className="w-full mt-4 bg-zinc-900 text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-950 dark:hover:bg-zinc-200">
                 Atualizar Lançamento
