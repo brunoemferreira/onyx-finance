@@ -273,7 +273,7 @@ const getCategoryIcon = (iconName: string | null) => {
   }
 };
 
-type Account = { id: string; name: string; initialBalance: string; type: string };
+type Account = { id: string; name: string; initialBalance: string; type: string; color?: string };
 type Category = { id: string; name: string; type: "income" | "expense"; icon: string; color: string; parentId: string | null };
 
 export default function TransactionsPage() {
@@ -1194,7 +1194,24 @@ export default function TransactionsPage() {
                         </TableCell>
 
                         {/* 6. Conta */}
-                        <TableCell className="py-1 text-xs text-zinc-500 dark:text-zinc-400">{tx.accountName}</TableCell>
+                        <TableCell className="py-1 text-xs">
+                          {(() => {
+                            const account = accounts.find(a => a.id === tx.accountId || a.name === tx.accountName);
+                            const color = account?.color || "#71717a";
+                            return (
+                              <span 
+                                className="inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-semibold border"
+                                style={{
+                                  backgroundColor: `${color}15`,
+                                  borderColor: `${color}40`,
+                                  color: color
+                                }}
+                              >
+                                {tx.accountName}
+                              </span>
+                            );
+                          })()}
+                        </TableCell>
 
                         {/* 7. Valor */}
                         <TableCell className={`text-right py-1 text-xs font-normal ${
