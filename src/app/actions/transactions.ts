@@ -3,7 +3,7 @@
 import { db } from "@/db";
 import { transactions, bankAccounts, categories } from "@/db/schema";
 import { getUserId } from "./accounts";
-import { eq, and, desc, sql as drizzleSql } from "drizzle-orm";
+import { eq, and, desc, sql as drizzleSql, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 // 1. Listar todas as transações com joins para nomes de conta e categoria
@@ -372,5 +372,52 @@ export async function toggleTransactionClear(id: string) {
   } catch (error) {
     console.error("Erro ao alternar status da transação:", error);
     throw new Error("Não foi possível atualizar o status.");
+  }
+}
+
+// 6. Liquidar transações em lote
+export async function clearTransactionsBulk(ids: string[], isCleared: boolean) {
+  const userId = await getUserId();
+  try {
+    const txs = await db
+      .select()
+      .from(transactions)
+      .where(and(inArray(transactions.id, ids), eq(transactions.userId, userId)));
+
+    for (const tx of txs) {
+      if (tx.isCleared !== isCleared) {
+        await db
+          .update(transactions)
+          .set({ isCleared })
+          .where(eq(transactions.id, tx.id));
+
+        const numAmount = parseFloat(tx.amount);
+        if (isCleared) {
+          if (tx.type === "transfer" && tx.toAccountId) {
+            await updateAccountBalance(tx.accountId, -numAmount);
+            await updateAccountBalance(tx.toAccountId, numAmount);
+          } else {
+            const factor = tx.type === "income" ? 1 : -1;
+            await updateAccountBalance(tx.accountId, numAmount * factor);
+          }
+        } else {
+          if (tx.type === "transfer" && tx.toAccountId) {
+            await updateAccountBalance(tx.accountId, numAmount);
+            await updateAccountBalance(tx.toAccountId, -numAmount);
+          } else {
+            const factor = tx.type === "income" ? -1 : 1;
+            await updateAccountBalance(tx.accountId, numAmount * factor);
+          }
+        }
+      }
+    }
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/transactions");
+    revalidatePath("/dashboard/accounts");
+    return { success: true };
+  } catch (error) {
+    console.error("Erro ao liquidar lançamentos em lote:", error);
+    throw new Error("Não foi possível liquidar os lançamentos em lote.");
   }
 }

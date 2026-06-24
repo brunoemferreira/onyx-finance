@@ -21,11 +21,10 @@ import { useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 
 const navigationItems = [
-  { name: "Resumo", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Transações", href: "/dashboard/transactions", icon: Receipt },
   { name: "Contas e Cartões", href: "/dashboard/accounts", icon: CreditCard },
   { name: "Categorias", href: "/dashboard/categories", icon: Tag },
-  { name: "Assinatura", href: "/dashboard/billing", icon: Settings },
 ];
 
 export default function DashboardLayout({
@@ -65,18 +64,6 @@ export default function DashboardLayout({
           </span>
         </div>
       </Link>
-      <Button 
-        variant="ghost" 
-        size="sm" 
-        onClick={async () => {
-          await signOut({ redirect: false });
-          window.location.href = "/";
-        }}
-        className="w-full justify-start text-zinc-500 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/10 rounded-xl cursor-pointer"
-      >
-        <LogOut className="mr-2 h-4 w-4" />
-        Sair
-      </Button>
     </div>
   );
 
@@ -181,15 +168,35 @@ export default function DashboardLayout({
             >
               <Menu className="h-5 w-5" />
             </Button>
-            <h1 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">
-              {navigationItems.find((item) => item.href === pathname)?.name || "Dashboard"}
-            </h1>
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Link href="/dashboard/billing">
+              <Button
+                variant="outline"
+                size="icon"
+                className="border-zinc-200 dark:border-zinc-800 bg-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50 hover:bg-zinc-100 dark:hover:bg-zinc-900 cursor-pointer"
+                title="Assinatura"
+              >
+                <Settings className="h-[1.2rem] w-[1.2rem]" />
+                <span className="sr-only">Assinatura</span>
+              </Button>
+            </Link>
             <ThemeToggle />
-            <div className="h-8 w-px bg-zinc-200 dark:bg-zinc-900 hidden sm:block" />
-
+            <div className="h-8 w-px bg-zinc-200 dark:bg-zinc-900" />
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={async () => {
+                await signOut({ redirect: false });
+                window.location.href = "/";
+              }}
+              className="border-zinc-200 dark:border-zinc-800 bg-transparent text-zinc-500 dark:text-zinc-400 hover:text-red-650 dark:hover:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 cursor-pointer"
+              title="Sair"
+            >
+              <LogOut className="h-[1.2rem] w-[1.2rem]" />
+              <span className="sr-only">Sair</span>
+            </Button>
           </div>
         </header>
 

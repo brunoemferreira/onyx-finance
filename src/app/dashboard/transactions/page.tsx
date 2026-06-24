@@ -6,7 +6,8 @@ import {
   createTransaction, 
   updateTransaction, 
   deleteTransaction, 
-  toggleTransactionClear 
+  toggleTransactionClear,
+  clearTransactionsBulk
 } from "@/app/actions/transactions";
 import { getBankAccounts } from "@/app/actions/accounts";
 import { getCategories } from "@/app/actions/categories";
@@ -322,6 +323,41 @@ export default function TransactionsPage() {
   const [sortField, setSortField] = useState<"date" | "description" | "categoryName" | "accountName" | "amount">("date");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
+  // Selection states for bulk actions
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const visibleIds = paginatedTransactions.map(tx => tx.id);
+      setSelectedIds(prev => Array.from(new Set([...prev, ...visibleIds])));
+    } else {
+      const visibleIds = paginatedTransactions.map(tx => tx.id);
+      setSelectedIds(prev => prev.filter(id => !visibleIds.includes(id)));
+    }
+  };
+
+  const handleSelectOne = (id: string, checked: boolean) => {
+    if (checked) {
+      setSelectedIds(prev => [...prev, id]);
+    } else {
+      setSelectedIds(prev => prev.filter(item => item !== id));
+    }
+  };
+
+  const handleBulkClear = async (isCleared: boolean) => {
+    if (selectedIds.length === 0) return;
+    try {
+      setLoading(true);
+      await clearTransactionsBulk(selectedIds, isCleared);
+      setSelectedIds([]);
+      await loadData();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSort = (field: typeof sortField) => {
     if (sortField === field) {
       setSortDirection(prev => prev === "asc" ? "desc" : "asc");
@@ -384,6 +420,10 @@ export default function TransactionsPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [selectedMonthDate, filterType, filterAccount, filterCategory, filterStatus, currentPage]);
 
   const openCreateDialog = () => {
     setDescription("");
@@ -686,7 +726,9 @@ export default function TransactionsPage() {
         <div className="rounded-2xl border border-red-200/50 dark:border-red-950/40 bg-red-50/10 dark:bg-red-950/5 p-4 shadow-sm hover:scale-[1.01] transition-all">
           <div className="flex items-center justify-between">
             <p className="text-[11px] font-bold uppercase tracking-wider text-red-500/85 dark:text-red-400/80">Vencidas</p>
-            <AlertTriangle className="h-4 w-4 text-red-500/80 dark:text-red-450/70" />
+            <div className="p-1.5 rounded-lg bg-red-100/70 dark:bg-red-950/40 text-red-650 dark:text-red-400">
+              <AlertTriangle className="h-4 w-4 stroke-[2.2]" />
+            </div>
           </div>
           <p className="text-xl font-bold text-red-650 dark:text-red-400 mt-1">{formatCurrency(metrics.totalVencidas)}</p>
         </div>
@@ -695,7 +737,9 @@ export default function TransactionsPage() {
         <div className="rounded-2xl border border-amber-200/50 dark:border-amber-950/40 bg-amber-50/10 dark:bg-amber-950/5 p-4 shadow-sm hover:scale-[1.01] transition-all">
           <div className="flex items-center justify-between">
             <p className="text-[11px] font-bold uppercase tracking-wider text-amber-500/85 dark:text-amber-400/80">A Vencer</p>
-            <Calendar className="h-4 w-4 text-amber-500/80 dark:text-amber-450/70" />
+            <div className="p-1.5 rounded-lg bg-amber-100/70 dark:bg-amber-950/40 text-amber-650 dark:text-amber-450">
+              <Calendar className="h-4 w-4 stroke-[2.2]" />
+            </div>
           </div>
           <p className="text-xl font-bold text-amber-650 dark:text-amber-450 mt-1">{formatCurrency(metrics.totalAVencer)}</p>
         </div>
@@ -704,7 +748,9 @@ export default function TransactionsPage() {
         <div className="rounded-2xl border border-zinc-200 dark:border-zinc-850 bg-zinc-50/50 dark:bg-zinc-900/10 p-4 shadow-sm hover:scale-[1.01] transition-all">
           <div className="flex items-center justify-between">
             <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">A Pagar</p>
-            <Wallet className="h-4 w-4 text-zinc-500/80" />
+            <div className="p-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-650 dark:text-zinc-400">
+              <Wallet className="h-4 w-4 stroke-[2.2]" />
+            </div>
           </div>
           <p className="text-xl font-bold text-zinc-800 dark:text-zinc-200 mt-1">{formatCurrency(metrics.totalAPagar)}</p>
         </div>
@@ -713,7 +759,9 @@ export default function TransactionsPage() {
         <div className="rounded-2xl border border-emerald-200/50 dark:border-emerald-950/40 bg-emerald-50/10 dark:bg-emerald-950/5 p-4 shadow-sm hover:scale-[1.01] transition-all">
           <div className="flex items-center justify-between">
             <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-500/85 dark:text-emerald-450/85">Pagos</p>
-            <CheckCircle className="h-4 w-4 text-emerald-500/80 dark:text-emerald-450/70" />
+            <div className="p-1.5 rounded-lg bg-emerald-100/70 dark:bg-emerald-950/40 text-emerald-650 dark:text-emerald-400">
+              <CheckCircle className="h-4 w-4 stroke-[2.2]" />
+            </div>
           </div>
           <p className="text-xl font-bold text-emerald-650 dark:text-emerald-400 mt-1">{formatCurrency(metrics.totalPagos)}</p>
         </div>
@@ -722,7 +770,9 @@ export default function TransactionsPage() {
         <div className="rounded-2xl border border-zinc-300 dark:border-zinc-800 bg-zinc-100/50 dark:bg-zinc-900/30 p-4 shadow-sm hover:scale-[1.01] transition-all">
           <div className="flex items-center justify-between">
             <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-650 dark:text-zinc-300">Total Geral</p>
-            <DollarSign className="h-4 w-4 text-zinc-600/85 dark:text-zinc-400/80" />
+            <div className="p-1.5 rounded-lg bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+              <DollarSign className="h-4 w-4 stroke-[2.2]" />
+            </div>
           </div>
           <p className={`text-xl font-bold mt-1 ${metrics.totalGeral >= 0 ? "text-emerald-650 dark:text-emerald-450" : "text-red-650 dark:text-red-400"}`}>
             {formatCurrency(metrics.totalGeral)}
@@ -863,6 +913,44 @@ export default function TransactionsPage() {
         </div>
       </div>
 
+      {/* Barra de Ações em Lote */}
+      {selectedIds.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl transition-all">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+              {selectedIds.length} {selectedIds.length === 1 ? "lançamento selecionado" : "lançamentos selecionados"}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Button
+              size="sm"
+              onClick={() => handleBulkClear(true)}
+              className="bg-emerald-650 hover:bg-emerald-700 text-white flex-1 sm:flex-initial h-8 text-xs font-semibold rounded-lg flex items-center gap-1.5 cursor-pointer"
+            >
+              <Check className="h-3.5 w-3.5" />
+              Liquidar selecionados
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleBulkClear(false)}
+              className="border-zinc-300 dark:border-zinc-850 bg-transparent text-zinc-750 dark:text-zinc-350 hover:bg-zinc-200 dark:hover:bg-zinc-800 flex-1 sm:flex-initial h-8 text-xs font-semibold rounded-lg flex items-center gap-1.5 cursor-pointer"
+            >
+              <Undo2 className="h-3.5 w-3.5" />
+              Marcar como Pendente
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedIds([])}
+              className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 h-8 text-xs rounded-lg cursor-pointer"
+            >
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Tabela de Transações */}
       {loading ? (
         <div className="text-center py-12 text-zinc-500 text-sm">Carregando lançamentos...</div>
@@ -876,6 +964,14 @@ export default function TransactionsPage() {
             <Table>
               <TableHeader className="bg-zinc-50/50 dark:bg-zinc-900/30">
                 <TableRow className="border-zinc-200 dark:border-zinc-900 h-9">
+                  <TableHead className="w-10 px-3 text-center">
+                    <input 
+                      type="checkbox"
+                      className="h-3.5 w-3.5 rounded border-zinc-300 dark:border-zinc-800 text-zinc-950 dark:text-zinc-50 focus:ring-zinc-950 cursor-pointer"
+                      checked={paginatedTransactions.length > 0 && paginatedTransactions.every(tx => selectedIds.includes(tx.id))}
+                      onChange={(e) => handleSelectAll(e.target.checked)}
+                    />
+                  </TableHead>
                   <TableHead className="px-4 text-xs font-medium w-32">Nº Documento</TableHead>
                   <TableHead 
                     className="text-xs font-medium cursor-pointer select-none hover:bg-zinc-100/50 dark:hover:bg-zinc-900/50 px-2 rounded-lg transition-colors"
@@ -955,6 +1051,14 @@ export default function TransactionsPage() {
                   return (
                     <React.Fragment key={tx.id}>
                       <TableRow className="border-zinc-200 dark:border-zinc-900 hover:bg-zinc-50/50 dark:hover:bg-zinc-900/20 h-8">
+                        <TableCell className="w-10 px-3 text-center">
+                          <input 
+                            type="checkbox"
+                            className="h-3.5 w-3.5 rounded border-zinc-300 dark:border-zinc-800 text-zinc-950 dark:text-zinc-50 focus:ring-zinc-950 cursor-pointer"
+                            checked={selectedIds.includes(tx.id)}
+                            onChange={(e) => handleSelectOne(tx.id, e.target.checked)}
+                          />
+                        </TableCell>
                         {/* 1. Nº Documento */}
                         <TableCell className="py-1 px-4 text-xs font-medium text-zinc-600 dark:text-zinc-400">
                           {tx.documentNumber || "-"}
