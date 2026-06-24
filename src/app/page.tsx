@@ -52,7 +52,7 @@ export default function Home() {
           </h1>
           
           <p className="text-lg text-zinc-500 dark:text-zinc-400 max-w-2xl mb-8 leading-relaxed">
-            Uma plataforma de finanças pessoais completa. Gerencie contas, cartões de crédito com fechamento inteligente, orçamentos mensais e parcelas recorrentes. Tudo em uma interface monocromática minimalista.
+            Uma plataforma de finanças pessoais completa. Gerencie contas, cartões de crédito com fechamento inteligente e parcelas recorrentes. Tudo em uma interface monocromática minimalista.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 w-full justify-center max-w-sm">
@@ -108,11 +108,11 @@ export default function Home() {
             {/* Card 3 */}
             <div className="flex flex-col p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-background hover:shadow-md transition-shadow">
               <div className="h-10 w-10 rounded-lg bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center text-zinc-900 dark:text-zinc-50 mb-4">
-                <BarChart3 className="h-5 w-5" />
+                <Layers className="h-5 w-5" />
               </div>
-              <h3 className="font-bold text-lg text-zinc-900 dark:text-zinc-50 mb-2">Orçamentos Dinâmicos</h3>
+              <h3 className="font-bold text-lg text-zinc-900 dark:text-zinc-50 mb-2">Categorização Inteligente</h3>
               <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">
-                Defina metas de gastos por categoria para cada mês e acompanhe o progresso com barras visuais limpas e alertas inteligentes de limites.
+                Organize seus lançamentos com subcategorias hierárquicas personalizadas e mais de 60 ícones e cores customizáveis para um controle visual completo.
               </p>
             </div>
           </div>
@@ -145,7 +145,7 @@ export default function Home() {
                 <li className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-zinc-900 dark:text-zinc-50" /> Até 2 Contas ou Cartões</li>
                 <li className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-zinc-900 dark:text-zinc-50" /> Registro Manual de Transações</li>
                 <li className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-zinc-900 dark:text-zinc-50" /> Até 50 Transações mensais</li>
-                <li className="flex items-center gap-2 text-zinc-400 dark:text-zinc-600 line-through"><Zap className="h-4 w-4" /> Planejamentos (Budgets) mensais</li>
+
               </ul>
 
               <Link href="/dashboard" className="w-full">
@@ -171,7 +171,7 @@ export default function Home() {
                 <li className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-zinc-100" /> Contas e Cartões Ilimitados</li>
                 <li className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-zinc-100" /> Lançamentos Parcelados & Recorrentes</li>
                 <li className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-zinc-100" /> Transações ilimitadas</li>
-                <li className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-zinc-100" /> Planejamento e Metas por Categoria</li>
+
                 <li className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-zinc-100" /> Exportação completa (CSV/OFX)</li>
               </ul>
 

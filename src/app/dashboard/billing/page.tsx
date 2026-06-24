@@ -104,7 +104,7 @@ export default function BillingPage() {
           {!sub?.isActive && (
             <div className="text-sm text-zinc-500 dark:text-zinc-400 flex items-center gap-2 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-900/30 border border-zinc-200 dark:border-zinc-900">
               <AlertCircle className="h-4 w-4" />
-              Limites ativos: Máximo de 2 contas/cartões, 50 transações por mês, sem orçamentos.
+              Limites ativos: Máximo de 2 contas/cartões e 50 transações por mês.
             </div>
           )}
 
@@ -123,10 +123,7 @@ export default function BillingPage() {
                 <Zap className="h-4 w-4 text-zinc-900 dark:text-zinc-50" />
                 Lançamentos Parcelados e Recorrências Automáticas
               </li>
-              <li className="flex items-center gap-2 text-zinc-700 dark:text-zinc-300">
-                <Zap className="h-4 w-4 text-zinc-900 dark:text-zinc-50" />
-                Planejamento de Metas Mensais por Categoria (Budgets)
-              </li>
+
               <li className="flex items-center gap-2 text-zinc-700 dark:text-zinc-300">
                 <Zap className="h-4 w-4 text-zinc-900 dark:text-zinc-50" />
                 Exportação de dados completa em CSV/OFX

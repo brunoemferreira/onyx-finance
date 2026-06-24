@@ -9,6 +9,8 @@ export default function LoginPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
 
   useEffect(() => {
     if (status === "authenticated") {
@@ -16,18 +18,26 @@ export default function LoginPage() {
     }
   }, [status, router]);
 
-  const handleLogin = async (provider: "google" | "github" | "credentials") => {
+  const handleLogin = async (provider: "google" | "github") => {
     try {
       setLoadingProvider(provider);
-      if (provider === "credentials") {
-        await signIn("credentials", {
-          email: "demo@onyx.finance",
-          name: "Usuário Demo",
-          callbackUrl: "/dashboard",
-        });
-      } else {
-        await signIn(provider, { callbackUrl: "/dashboard" });
-      }
+      await signIn(provider, { callbackUrl: "/dashboard" });
+    } catch (error) {
+      console.error("Erro ao autenticar:", error);
+      setLoadingProvider(null);
+    }
+  };
+
+  const handleCredentialsLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
+    try {
+      setLoadingProvider("credentials");
+      await signIn("credentials", {
+        email,
+        name: name || undefined,
+        callbackUrl: "/dashboard",
+      });
     } catch (error) {
       console.error("Erro ao autenticar:", error);
       setLoadingProvider(null);
@@ -109,25 +119,50 @@ export default function LoginPage() {
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-zinc-800" />
               </div>
-              <span className="relative bg-[#111113] px-2 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Desenvolvimento</span>
+              <span className="relative bg-[#111113] px-2 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Acesso de Teste</span>
             </div>
 
-            {/* Credentials / Demo Login Button */}
-            <button
-              onClick={() => handleLogin("credentials")}
-              disabled={loadingProvider !== null}
-              className="flex w-full items-center justify-center gap-3 rounded-xl border border-dashed border-zinc-800 bg-zinc-900/20 px-4 py-3 text-sm font-medium text-zinc-300 transition-all hover:bg-zinc-900/60 hover:text-zinc-50 hover:border-zinc-700 active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none"
-            >
-              {loadingProvider === "credentials" ? (
-                <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
-              ) : (
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
-              )}
-              <span>Acessar Modo Demonstração</span>
-            </button>
+            {/* Credentials Form */}
+            <form onSubmit={handleCredentialsLogin} className="space-y-4 text-left">
+              <div>
+                <label htmlFor="email" className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
+                  E-mail
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  required
+                  placeholder="seu-email@exemplo.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="flex w-full rounded-xl border border-zinc-800 bg-zinc-900/40 px-4 py-3 text-sm text-zinc-200 placeholder-zinc-650 focus:outline-none focus:border-zinc-700 transition-colors"
+                />
+              </div>
+              <div>
+                <label htmlFor="name" className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
+                  Nome (opcional)
+                </label>
+                <input
+                  id="name"
+                  type="text"
+                  placeholder="Seu Nome"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="flex w-full rounded-xl border border-zinc-800 bg-zinc-900/40 px-4 py-3 text-sm text-zinc-200 placeholder-zinc-650 focus:outline-none focus:border-zinc-700 transition-colors"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={loadingProvider !== null || !email}
+                className="flex w-full items-center justify-center gap-3 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-950 px-4 py-3 text-sm font-semibold transition-all active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
+              >
+                {loadingProvider === "credentials" ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-zinc-950" />
+                ) : (
+                  <span>Acessar Conta / Registrar</span>
+                )}
+              </button>
+            </form>
           </div>
 
           <div className="mt-8 border-t border-zinc-800/60 pt-6 text-center">

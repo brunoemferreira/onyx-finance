@@ -1,6 +1,8 @@
 import NextAuth from "next-auth";
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import { db } from "./db";
+import { users } from "./db/schema";
+import { eq } from "drizzle-orm";
 import GithubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
@@ -23,11 +25,26 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         name: { label: "Name", type: "text" },
       },
       async authorize(credentials) {
+        if (!credentials?.email) return null;
+        const email = credentials.email as string;
+        const name = (credentials.name as string) || email.split("@")[0];
+
+        // Se o usuário não existir no banco, cria ele
+        const existing = await db.select().from(users).where(eq(users.email, email)).limit(1);
+        let user = existing[0];
+        if (!user) {
+          const [newUser] = await db.insert(users).values({
+            name,
+            email,
+          }).returning();
+          user = newUser;
+        }
+
         return {
-          id: "mock-user-id",
-          name: (credentials?.name as string) || "Usuário Demo",
-          email: (credentials?.email as string) || "demo@onyx.finance",
-          image: null,
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.image,
         };
       },
     }),

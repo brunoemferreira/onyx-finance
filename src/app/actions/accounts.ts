@@ -6,25 +6,13 @@ import { bankAccounts, users } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
-// Função auxiliar para obter ou criar o usuário Demo (facilitando testes e simulação sem travar o app)
-async function getOrCreateMockUser() {
-  const existing = await db.select().from(users).where(eq(users.email, "demo@onyx.finance")).limit(1);
-  if (existing.length > 0) return existing[0].id;
-
-  const [newUser] = await db.insert(users).values({
-    name: "Usuário Demo",
-    email: "demo@onyx.finance",
-  }).returning();
-  return newUser.id;
-}
-
-// Obtém o ID do usuário autenticado ou do mock
+// Obtém o ID do usuário autenticado
 export async function getUserId() {
   const session = await auth();
   if (session?.user?.id) {
     return session.user.id;
   }
-  return await getOrCreateMockUser();
+  throw new Error("Não autenticado.");
 }
 
 // 1. Listar contas e cartões do usuário

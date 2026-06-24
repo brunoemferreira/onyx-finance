@@ -119,7 +119,7 @@ export async function createPortalSession() {
 
 // Helper para validar limites do plano grátis (Middleware/Paywall)
 export async function checkPlanLimits(
-  checkType: "accounts" | "transactions" | "budgets",
+  checkType: "accounts" | "transactions",
   currentCount: number
 ) {
   const sub = await getUserSubscription();
@@ -130,9 +130,6 @@ export async function checkPlanLimits(
   }
   if (checkType === "transactions") {
     return currentCount < 50; // Plano Grátis limite de 50 transações por mês
-  }
-  if (checkType === "budgets") {
-    return false; // Plano Grátis não tem orçamentos (budgets)
   }
 
   return false;

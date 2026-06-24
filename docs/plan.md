@@ -12,7 +12,7 @@ Este documento serve como o roteiro (roadmap) oficial de desenvolvimento do proj
 - [x] Configuração base do **NextAuth.js** (preparado para logins via Google e GitHub, e login simulado em ambiente de desenvolvimento).
 
 ### **Fase 2: Regra de Negócio e Funcionalidades Core (Concluída)**
-- [x] Modelagem das entidades financeiras principais: contas/cartões (`bank_accounts`), categorias (`categories`), transações (`transactions`) e orçamentos (`budgets`).
+- [x] Modelagem das entidades financeiras principais: contas/cartões (`bank_accounts`), categorias (`categories`) e transações (`transactions`).
 - [x] Desenvolvimento do dashboard principal com agregações automáticas de saldo total, receitas/despesas e gráficos (fluxo de caixa e pizza por categoria com `Recharts`).
 - [x] Controle de transações suportando transferências entre contas, parcelamento de compras e recorrências automáticas.
 
@@ -30,12 +30,10 @@ Este documento serve como o roteiro (roadmap) oficial de desenvolvimento do proj
 - [ ] **Dados de Perfil:** Atualizar a barra lateral para exibir dinamicamente o nome, e-mail e foto do usuário vindo da sessão real ativa.
 - [ ] **Página de Perfil:** Criar uma página de perfil dedicada (ex: `/dashboard/profile`) permitindo visualizar as informações cadastrais do usuário e histórico da conta.
 
-### **Fase 5: Orçamentos e Metas (Budgets)**
-- [ ] **Interface de Orçamentos:** Implementar a tela dedicada `/dashboard/budgets` para visualização e gerenciamento de limites mensais por categoria.
-- [ ] **Lógica de Limites:** Criar barras de progresso interativas no dashboard e na tela de orçamentos sinalizando se os gastos em categorias específicas estão próximos ou excedendo os limites configurados.
+
 
 ### **Fase 6: Integração SaaS e Stripe (Fase Final)**
 - [ ] **Assinatura Premium:** Implementar fluxo de checkout via Stripe Checkout para o plano Premium.
 - [ ] **Portal do Assinante:** Habilitar portal Stripe Billing para gerenciamento de faturamento e cancelamento.
 - [ ] **Webhooks do Stripe:** Configurar rota de webhooks para escutar eventos de criação, alteração ou cancelamento de assinaturas e sincronizar com o banco de dados.
-- [ ] **Paywall & Limites:** Integrar middleware de verificação para limitar os recursos do plano básico (máximo de 2 contas, 50 transações por mês, sem orçamentos).
+- [ ] **Paywall & Limites:** Integrar middleware de verificação para limitar os recursos do plano básico (máximo de 2 contas, 50 transações por mês).

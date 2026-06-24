@@ -137,15 +137,7 @@ export const transactions = pgTable("transaction", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Planejamento / Orçamentos Mensais (Budgets)
-export const budgets = pgTable("budget", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
-  categoryId: uuid("category_id").references(() => categories.id, { onDelete: "cascade" }).notNull(),
-  limitAmount: numeric("limit_amount", { precision: 12, scale: 2 }).notNull(),
-  month: text("month").notNull(), // Formato "YYYY-MM"
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+
 
 // SaaS - Assinaturas e Planos (Stripe Integration)
 export const subscriptions = pgTable("subscription", {

@@ -8,6 +8,13 @@
       "when": 1781377532688,
       "tag": "0000_organic_warlock",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1782285884951,
+      "tag": "0001_smooth_calypso",
+      "breakpoints": true
     }
   ]
 }

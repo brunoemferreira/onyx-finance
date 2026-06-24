@@ -25,7 +25,6 @@ const navigationItems = [
   { name: "Transações", href: "/dashboard/transactions", icon: Receipt },
   { name: "Contas e Cartões", href: "/dashboard/accounts", icon: CreditCard },
   { name: "Categorias", href: "/dashboard/categories", icon: Tag },
-  { name: "Orçamentos", href: "/dashboard/budgets", icon: PiggyBank },
   { name: "Assinatura", href: "/dashboard/billing", icon: Settings },
 ];
 
@@ -69,8 +68,11 @@ export default function DashboardLayout({
       <Button 
         variant="ghost" 
         size="sm" 
-        onClick={() => signOut({ callbackUrl: "/" })}
-        className="w-full justify-start text-zinc-500 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/10 rounded-xl"
+        onClick={async () => {
+          await signOut({ redirect: false });
+          window.location.href = "/";
+        }}
+        className="w-full justify-start text-zinc-500 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/10 rounded-xl cursor-pointer"
       >
         <LogOut className="mr-2 h-4 w-4" />
         Sair
@@ -187,11 +189,7 @@ export default function DashboardLayout({
           <div className="flex items-center gap-4">
             <ThemeToggle />
             <div className="h-8 w-px bg-zinc-200 dark:bg-zinc-900 hidden sm:block" />
-            <div className="hidden sm:flex items-center gap-2">
-              <span className="text-xs bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 px-2 py-1 rounded font-medium">
-                Modo Simulação
-              </span>
-            </div>
+
           </div>
         </header>
 
