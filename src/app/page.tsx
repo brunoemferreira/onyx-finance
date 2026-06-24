@@ -24,12 +24,7 @@ export default function Home() {
 
           <div className="flex items-center gap-4">
             <ThemeToggle />
-            <Link href="/dashboard">
-              <Button variant="outline" className="border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-900">
-                Acessar App
-              </Button>
-            </Link>
-            <Link href="/dashboard">
+            <Link href="/login">
               <Button className="bg-zinc-900 text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-950 dark:hover:bg-zinc-200">
                 Registrar-se <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
@@ -56,7 +51,7 @@ export default function Home() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 w-full justify-center max-w-sm">
-            <Link href="/dashboard" className="w-full">
+            <Link href="/login" className="w-full">
               <Button size="lg" className="w-full bg-zinc-900 text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-zinc-200">
                 Começar Grátis
               </Button>
@@ -148,7 +143,7 @@ export default function Home() {
 
               </ul>
 
-              <Link href="/dashboard" className="w-full">
+              <Link href="/login" className="w-full">
                 <Button variant="outline" className="w-full border-zinc-200 dark:border-zinc-800">
                   Começar Agora
                 </Button>
@@ -175,7 +170,7 @@ export default function Home() {
                 <li className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-zinc-100" /> Exportação completa (CSV/OFX)</li>
               </ul>
 
-              <Link href="/dashboard" className="w-full">
+              <Link href="/login" className="w-full">
                 <Button className="w-full bg-zinc-50 text-zinc-950 hover:bg-zinc-200">
                   Assinar Premium
                 </Button>

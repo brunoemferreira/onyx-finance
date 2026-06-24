@@ -57,10 +57,10 @@ export default function DashboardLayout({
           </div>
         )}
         <div className="flex flex-col min-w-0">
-          <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 truncate group-hover:text-zinc-950 dark:group-hover:text-white">
+          <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 break-words whitespace-normal group-hover:text-zinc-950 dark:group-hover:text-white">
             {user?.name || "Usuário"}
           </span>
-          <span className="text-xs text-zinc-500 truncate group-hover:text-zinc-400">
+          <span className="text-xs text-zinc-500 break-all whitespace-normal group-hover:text-zinc-400">
             {user?.email || "Ver Perfil"}
           </span>
         </div>

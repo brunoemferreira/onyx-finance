@@ -3,6 +3,7 @@ import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import { db } from "./db";
 import { users } from "./db/schema";
 import { eq } from "drizzle-orm";
+import { hashPassword, verifyPassword } from "./lib/password";
 import GithubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
@@ -22,22 +23,41 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       name: "Credentials",
       credentials: {
         email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
         name: { label: "Name", type: "text" },
+        isRegister: { label: "isRegister", type: "text" },
       },
       async authorize(credentials) {
-        if (!credentials?.email) return null;
+        if (!credentials?.email || !credentials?.password) return null;
         const email = credentials.email as string;
-        const name = (credentials.name as string) || email.split("@")[0];
+        const password = credentials.password as string;
+        const name = credentials.name as string;
+        const isRegister = credentials.isRegister === "true";
 
-        // Se o usuário não existir no banco, cria ele
         const existing = await db.select().from(users).where(eq(users.email, email)).limit(1);
         let user = existing[0];
-        if (!user) {
+
+        if (isRegister) {
+          if (user) {
+            throw new Error("Email já cadastrado.");
+          }
+          const passwordHash = hashPassword(password);
           const [newUser] = await db.insert(users).values({
-            name,
+            name: name || email.split("@")[0],
             email,
+            passwordHash,
           }).returning();
           user = newUser;
+        } else {
+          if (!user) {
+            throw new Error("E-mail não cadastrado.");
+          }
+          if (!user.passwordHash) {
+            throw new Error("Esta conta foi criada via login social. Use Google ou GitHub.");
+          }
+          if (!verifyPassword(password, user.passwordHash)) {
+            throw new Error("Senha incorreta.");
+          }
         }
 
         return {

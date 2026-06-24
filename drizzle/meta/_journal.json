@@ -15,6 +15,13 @@
       "when": 1782285884951,
       "tag": "0001_smooth_calypso",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782288098766,
+      "tag": "0002_stale_hardball",
+      "breakpoints": true
     }
   ]
 }

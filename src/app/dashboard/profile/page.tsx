@@ -63,9 +63,9 @@ export default function ProfilePage() {
               )}
             </div>
 
-            <div className="space-y-1">
-              <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-50 truncate max-w-full">{user.name || "Usuário"}</h3>
-              <p className="text-xs text-zinc-500 truncate max-w-full">{user.email}</p>
+            <div className="space-y-1 w-full px-2">
+              <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-50 break-words whitespace-normal max-w-full">{user.name || "Usuário"}</h3>
+              <p className="text-xs text-zinc-500 break-all whitespace-normal max-w-full">{user.email}</p>
             </div>
 
             <span className="inline-flex items-center gap-1 text-xs font-semibold bg-zinc-100 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 px-3 py-1 rounded-full border border-zinc-200 dark:border-zinc-800">
