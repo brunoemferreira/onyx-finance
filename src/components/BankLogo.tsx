@@ -62,7 +62,7 @@ export default function BankLogo({ institution, type, className = "h-8 w-8", sty
     
     return (
       <div 
-        className={`rounded-lg overflow-hidden shrink-0 ${className}`}
+        className={`rounded-lg overflow-hidden shrink-0 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:block ${className}`}
         style={{ ...style }}
         dangerouslySetInnerHTML={{ __html: svgHtml }}
         title={details.fullName}
