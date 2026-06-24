@@ -92,7 +92,9 @@ import {
   Activity,
   Key,
   Compass,
-  Smile
+  Smile,
+  AlertTriangle,
+  CheckCircle
 } from "lucide-react";
 
 type Transaction = {
@@ -682,31 +684,46 @@ export default function TransactionsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
         {/* Vencidas */}
         <div className="rounded-2xl border border-red-200/50 dark:border-red-950/40 bg-red-50/10 dark:bg-red-950/5 p-4 shadow-sm hover:scale-[1.01] transition-all">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-red-500/85 dark:text-red-400/80">Vencidas</p>
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-red-500/85 dark:text-red-400/80">Vencidas</p>
+            <AlertTriangle className="h-4 w-4 text-red-500/80 dark:text-red-450/70" />
+          </div>
           <p className="text-xl font-bold text-red-650 dark:text-red-400 mt-1">{formatCurrency(metrics.totalVencidas)}</p>
         </div>
 
         {/* A Vencer */}
         <div className="rounded-2xl border border-amber-200/50 dark:border-amber-950/40 bg-amber-50/10 dark:bg-amber-950/5 p-4 shadow-sm hover:scale-[1.01] transition-all">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-amber-500/85 dark:text-amber-400/80">A Vencer</p>
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-amber-500/85 dark:text-amber-400/80">A Vencer</p>
+            <Calendar className="h-4 w-4 text-amber-500/80 dark:text-amber-450/70" />
+          </div>
           <p className="text-xl font-bold text-amber-650 dark:text-amber-450 mt-1">{formatCurrency(metrics.totalAVencer)}</p>
         </div>
 
         {/* A Pagar */}
         <div className="rounded-2xl border border-zinc-200 dark:border-zinc-850 bg-zinc-50/50 dark:bg-zinc-900/10 p-4 shadow-sm hover:scale-[1.01] transition-all">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">A Pagar</p>
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">A Pagar</p>
+            <Wallet className="h-4 w-4 text-zinc-500/80" />
+          </div>
           <p className="text-xl font-bold text-zinc-800 dark:text-zinc-200 mt-1">{formatCurrency(metrics.totalAPagar)}</p>
         </div>
 
         {/* Pagos */}
         <div className="rounded-2xl border border-emerald-200/50 dark:border-emerald-950/40 bg-emerald-50/10 dark:bg-emerald-950/5 p-4 shadow-sm hover:scale-[1.01] transition-all">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-500/85 dark:text-emerald-450/85">Pagos</p>
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-500/85 dark:text-emerald-450/85">Pagos</p>
+            <CheckCircle className="h-4 w-4 text-emerald-500/80 dark:text-emerald-450/70" />
+          </div>
           <p className="text-xl font-bold text-emerald-650 dark:text-emerald-400 mt-1">{formatCurrency(metrics.totalPagos)}</p>
         </div>
 
         {/* Total Geral */}
         <div className="rounded-2xl border border-zinc-300 dark:border-zinc-800 bg-zinc-100/50 dark:bg-zinc-900/30 p-4 shadow-sm hover:scale-[1.01] transition-all">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-650 dark:text-zinc-300">Total Geral</p>
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-650 dark:text-zinc-300">Total Geral</p>
+            <DollarSign className="h-4 w-4 text-zinc-600/85 dark:text-zinc-400/80" />
+          </div>
           <p className={`text-xl font-bold mt-1 ${metrics.totalGeral >= 0 ? "text-emerald-650 dark:text-emerald-450" : "text-red-650 dark:text-red-400"}`}>
             {formatCurrency(metrics.totalGeral)}
           </p>
