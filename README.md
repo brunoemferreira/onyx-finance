@@ -21,6 +21,19 @@ Onyx Finance é um sistema premium de controle e gestão financeira pessoal. Foc
 
 ---
 
+## 📸 Screenshots (Visualização no Tema Escuro)
+
+### Dashboard Consolidado
+![Onyx Dashboard](public/screenshots/dashboard.png)
+
+### Lista de Transações (com Conciliação e Checkboxes)
+![Onyx Transações](public/screenshots/transactions.png)
+
+### Modal de Novo Lançamento (Campos Reordenados e Upload de Comprovante)
+![Onyx Novo Lançamento Modal](public/screenshots/new_transaction_modal.png)
+
+---
+
 ## 🛠️ Tecnologias & Arquitetura
 
 O projeto utiliza um ecossistema moderno e robusto voltado para alta performance e facilidade de manutenção:
