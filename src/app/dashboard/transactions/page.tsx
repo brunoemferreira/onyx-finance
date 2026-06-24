@@ -713,101 +713,6 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      {/* Paginação Personalizada (Igual à Imagem) */}
-      <div className="flex items-center justify-between bg-white dark:bg-zinc-950 px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-900 text-zinc-500 text-xs">
-        <div className="flex items-center gap-3">
-          <span className="text-zinc-500 dark:text-zinc-400">Itens por página:</span>
-          <div className="flex items-center gap-2">
-            {[15, 50, 100].map((size) => (
-              <button
-                key={size}
-                type="button"
-                onClick={() => {
-                  setPageSize(size);
-                  setCurrentPage(1);
-                }}
-                className={`px-3 py-1 text-xs font-semibold rounded transition-all cursor-pointer ${
-                  pageSize === size
-                    ? "bg-[#0B4F83] text-white"
-                    : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
-                }`}
-              >
-                {size}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1">
-          {(() => {
-            const pageButtons = [];
-            const maxVisiblePages = 5;
-
-            const addPageButton = (page: number) => {
-              pageButtons.push(
-                <button
-                  key={page}
-                  type="button"
-                  onClick={() => setCurrentPage(page)}
-                  className={`h-7 w-7 flex items-center justify-center text-xs font-semibold rounded transition-all cursor-pointer ${
-                    currentPage === page
-                      ? "bg-[#0B4F83] text-white"
-                      : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
-                  }`}
-                >
-                  {page}
-                </button>
-              );
-            };
-
-            if (totalPages <= maxVisiblePages) {
-              for (let i = 1; i <= totalPages; i++) {
-                addPageButton(i);
-              }
-            } else {
-              addPageButton(1);
-              let start = Math.max(2, currentPage - 1);
-              let end = Math.min(totalPages - 1, currentPage + 1);
-
-              if (currentPage <= 3) {
-                end = 4;
-              }
-              if (currentPage >= totalPages - 2) {
-                start = totalPages - 3;
-              }
-
-              if (start > 2) {
-                pageButtons.push(<span key="ellipsis-1" className="text-xs text-zinc-450 px-1 select-none">...</span>);
-              }
-
-              for (let i = start; i <= end; i++) {
-                addPageButton(i);
-              }
-
-              if (end < totalPages - 1) {
-                pageButtons.push(<span key="ellipsis-2" className="text-xs text-zinc-450 px-1 select-none">...</span>);
-              }
-
-              addPageButton(totalPages);
-            }
-
-            return (
-              <>
-                {pageButtons}
-                <button
-                  type="button"
-                  disabled={currentPage === totalPages || totalPages === 0}
-                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                  className="h-7 w-7 flex items-center justify-center text-zinc-500 hover:text-zinc-700 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </>
-            );
-          })()}
-        </div>
-      </div>
-
       {/* Filtros Container */}
       <div className="bg-white dark:bg-zinc-950 p-4 rounded-xl border border-zinc-200 dark:border-zinc-900 space-y-4">
         <div className="flex flex-wrap items-center justify-start gap-3">
@@ -1155,24 +1060,105 @@ export default function TransactionsPage() {
                           </div>
                         </TableCell>
                       </TableRow>
-                      {isLastOfToday && (
-                        <TableRow className="bg-zinc-50/20 dark:bg-zinc-900/10 hover:bg-zinc-50/20 dark:hover:bg-zinc-900/10 border-b border-zinc-100 dark:border-zinc-900/40">
-                          <TableCell colSpan={6} className="py-2 px-4 text-xs font-semibold text-zinc-500 dark:text-zinc-400 text-right select-none">
-                            Saldo previsto no final do dia:
-                          </TableCell>
-                          <TableCell className="text-right py-2 px-2 font-black text-xs text-zinc-900 dark:text-zinc-50 whitespace-nowrap">
-                            {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(getEndOfDayTotalBalance(dateStr))}
-                          </TableCell>
-                          {showBalances && <TableCell className="py-2"></TableCell>}
-                          <TableCell className="py-2"></TableCell>
-                        </TableRow>
-                      )}
                     </React.Fragment>
                   );
                 })}
               </TableBody>
             </Table>
           </CardContent>
+          <div className="border-t border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950 px-4 py-3 rounded-b-xl flex items-center justify-between text-zinc-500 text-xs">
+            <div className="flex items-center gap-3">
+              <span className="text-zinc-500 dark:text-zinc-400">Itens por página:</span>
+              <div className="flex items-center gap-2">
+                {[15, 50, 100].map((size) => (
+                  <button
+                    key={size}
+                    type="button"
+                    onClick={() => {
+                      setPageSize(size);
+                      setCurrentPage(1);
+                    }}
+                    className={`px-3 py-1 text-xs font-semibold rounded transition-all cursor-pointer ${
+                      pageSize === size
+                        ? "bg-[#0B4F83] text-white"
+                        : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+                    }`}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1">
+              {(() => {
+                const pageButtons = [];
+                const maxVisiblePages = 5;
+
+                const addPageButton = (page: number) => {
+                  pageButtons.push(
+                    <button
+                      key={page}
+                      type="button"
+                      onClick={() => setCurrentPage(page)}
+                      className={`h-7 w-7 flex items-center justify-center text-xs font-semibold rounded transition-all cursor-pointer ${
+                        currentPage === page
+                          ? "bg-[#0B4F83] text-white"
+                          : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  );
+                };
+
+                if (totalPages <= maxVisiblePages) {
+                  for (let i = 1; i <= totalPages; i++) {
+                    addPageButton(i);
+                  }
+                } else {
+                  addPageButton(1);
+                  let start = Math.max(2, currentPage - 1);
+                  let end = Math.min(totalPages - 1, currentPage + 1);
+
+                  if (currentPage <= 3) {
+                    end = 4;
+                  }
+                  if (currentPage >= totalPages - 2) {
+                    start = totalPages - 3;
+                  }
+
+                  if (start > 2) {
+                    pageButtons.push(<span key="ellipsis-1" className="text-xs text-zinc-450 px-1 select-none">...</span>);
+                  }
+
+                  for (let i = start; i <= end; i++) {
+                    addPageButton(i);
+                  }
+
+                  if (end < totalPages - 1) {
+                    pageButtons.push(<span key="ellipsis-2" className="text-xs text-zinc-450 px-1 select-none">...</span>);
+                  }
+
+                  addPageButton(totalPages);
+                }
+
+                return (
+                  <>
+                    {pageButtons}
+                    <button
+                      type="button"
+                      disabled={currentPage === totalPages || totalPages === 0}
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      className="h-7 w-7 flex items-center justify-center text-zinc-500 hover:text-zinc-700 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </>
+                );
+              })()}
+            </div>
+          </div>
         </Card>
       )}
 
