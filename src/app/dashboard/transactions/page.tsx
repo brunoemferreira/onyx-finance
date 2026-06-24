@@ -9,6 +9,7 @@ import {
   toggleTransactionClear,
   clearTransactionsBulk
 } from "@/app/actions/transactions";
+import { uploadReceipt } from "@/app/actions/upload";
 import { getBankAccounts } from "@/app/actions/accounts";
 import { getCategories } from "@/app/actions/categories";
 import { Card, CardContent } from "@/components/ui/card";
@@ -95,7 +96,12 @@ import {
   Compass,
   Smile,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  Paperclip,
+  Upload,
+  Info,
+  ExternalLink,
+  FileText
 } from "lucide-react";
 
 type Transaction = {
@@ -117,6 +123,9 @@ type Transaction = {
   categoryId: string | null;
   toAccountName: string | null;
   documentNumber: string | null;
+  paymentMethod: string | null;
+  notes: string | null;
+  receiptUrl: string | null;
 };
 
 const formatDate = (dateInput: Date | string) => {
@@ -389,6 +398,13 @@ export default function TransactionsPage() {
   const [toAccountId, setToAccountId] = useState("");
   const [documentNumber, setDocumentNumber] = useState("");
   const [isClearedForm, setIsClearedForm] = useState(false);
+  
+  // Custom payment method, notes, and attachment states
+  const [paymentMethod, setPaymentMethod] = useState("");
+  const [notes, setNotes] = useState("");
+  const [receiptUrl, setReceiptUrl] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState("");
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -436,6 +452,10 @@ export default function TransactionsPage() {
     setIsClearedForm(false);
     setIsInstallment(false);
     setIsRecurring(false);
+    setPaymentMethod("Boleto");
+    setNotes("");
+    setReceiptUrl("");
+    setUploadedFileName("");
     setIsCreateOpen(true);
   };
 
@@ -450,6 +470,10 @@ export default function TransactionsPage() {
     setToAccountId(tx.toAccountName ? accounts.find(a => a.name === tx.toAccountName)?.id || "" : "");
     setDocumentNumber(tx.documentNumber || "");
     setIsClearedForm(tx.isCleared);
+    setPaymentMethod(tx.paymentMethod || "Boleto");
+    setNotes(tx.notes || "");
+    setReceiptUrl(tx.receiptUrl || "");
+    setUploadedFileName(tx.receiptUrl ? tx.receiptUrl.split("/").pop() || "" : "");
     setIsEditOpen(true);
   };
 
@@ -465,7 +489,7 @@ export default function TransactionsPage() {
         description,
         amount,
         type,
-        date, // Preserve selected date (YYYY-MM-DD)
+        date,
         accountId,
         categoryId: type !== "transfer" ? categoryId || undefined : undefined,
         toAccountId: type === "transfer" ? toAccountId : undefined,
@@ -475,6 +499,9 @@ export default function TransactionsPage() {
         recurrencePeriod: isRecurring ? recurrencePeriod : "none",
         isCleared: isClearedForm,
         documentNumber: documentNumber || undefined,
+        paymentMethod: paymentMethod || undefined,
+        notes: notes || undefined,
+        receiptUrl: receiptUrl || undefined,
       });
       setIsCreateOpen(false);
       loadData();
@@ -491,11 +518,14 @@ export default function TransactionsPage() {
         description,
         amount,
         type,
-        date, // Preserve selected date (YYYY-MM-DD)
+        date,
         accountId,
         categoryId: type !== "transfer" ? categoryId || undefined : undefined,
         toAccountId: type === "transfer" ? toAccountId : undefined,
         documentNumber: documentNumber || undefined,
+        paymentMethod: paymentMethod || undefined,
+        notes: notes || undefined,
+        receiptUrl: receiptUrl || undefined,
       });
       setIsEditOpen(false);
       loadData();
@@ -521,6 +551,54 @@ export default function TransactionsPage() {
       loadData();
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const getInstallmentProjections = () => {
+    if (!date) return [];
+    const count = parseInt(totalInstallments) || 1;
+    const [y, m, d] = date.split("-").map(Number);
+    const list = [];
+    for (let i = 1; i <= count; i++) {
+      const pDate = new Date(Date.UTC(y, m - 1, d));
+      pDate.setUTCMonth(pDate.getUTCMonth() + (i - 1));
+      
+      const day = String(pDate.getUTCDate()).padStart(2, '0');
+      const month = String(pDate.getUTCMonth() + 1).padStart(2, '0');
+      const year = pDate.getUTCFullYear();
+      
+      list.push({
+        installment: i,
+        dateStr: `${day}/${month}/${year}`
+      });
+    }
+    return list;
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 3 * 1024 * 1024) {
+      alert("O arquivo deve ser inferior a 3 MB.");
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await uploadReceipt(formData);
+      if (res?.success) {
+        setReceiptUrl(res.url);
+        setUploadedFileName(res.fileName);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Falha ao subir comprovante.");
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -1070,7 +1148,20 @@ export default function TransactionsPage() {
                         {/* 3. Descrição */}
                         <TableCell className="font-semibold py-1 text-zinc-900 dark:text-zinc-50 text-xs">
                           <div className="flex flex-col min-w-0">
-                            <span className="truncate max-w-[150px] sm:max-w-xs">{tx.description}</span>
+                            <span className="flex items-center gap-1.5 min-w-0">
+                              <span className="truncate max-w-[150px] sm:max-w-xs">{tx.description}</span>
+                              {tx.receiptUrl && (
+                                <a 
+                                  href={tx.receiptUrl} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  className="text-zinc-400 hover:text-[#0B4F83] dark:hover:text-[#218FDE] flex-shrink-0"
+                                  title="Ver Comprovante"
+                                >
+                                  <Paperclip className="h-3.5 w-3.5" />
+                                </a>
+                              )}
+                            </span>
                             {isTrans && tx.toAccountName && (
                               <span className="text-[9px] text-zinc-400 font-normal">Destino: {tx.toAccountName}</span>
                             )}
@@ -1285,340 +1376,675 @@ export default function TransactionsPage() {
 
       {/* 1. Modal de Criação (Novo Lançamento) */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950 sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Novo Lançamento Financeiro</DialogTitle>
-            <DialogDescription>Insira os detalhes da transação financeira.</DialogDescription>
+        <DialogContent className="border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950 sm:max-w-5xl w-full rounded-2xl p-0 overflow-hidden shadow-2xl">
+          <DialogHeader className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-900 flex flex-row items-center justify-between">
+            <DialogTitle className="text-lg font-bold text-zinc-900 dark:text-zinc-50">
+              Novo Lançamento
+            </DialogTitle>
+            <DialogDescription className="sr-only">Insira os detalhes do lançamento.</DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleCreateSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-semibold text-zinc-550 block mb-1">Nº Documento</label>
-                <Input value={documentNumber} onChange={(e) => setDocumentNumber(e.target.value)} placeholder="Ex: NF-12345, Fatura..." />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-zinc-550 block mb-1">Descrição</label>
-                <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Ex: Mercado, Academia, Salário..." required />
-              </div>
-            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-semibold text-zinc-550 block mb-1">Tipo</label>
-                <Select value={type} onValueChange={(v: any) => {
-                  setType(v);
-                  // Reseta categorias ao mudar tipo
-                  const firstCat = categories.filter(c => c.type === v)[0]?.id || "";
-                  setCategoryId(firstCat);
-                }}>
-                  <SelectTrigger className="w-full h-8 text-xs">
-                    <SelectValue>{type === 'expense' ? 'Despesa' : type === 'income' ? 'Receita' : type === 'transfer' ? 'Transferência' : ''}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="expense" className="text-xs">Despesa</SelectItem>
-                    <SelectItem value="income" className="text-xs">Receita</SelectItem>
-                    <SelectItem value="transfer" className="text-xs">Transferência</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {type === "transfer" ? (
-                <div>
-                  <label className="text-xs font-semibold text-zinc-550 block mb-1">Conta Destino</label>
-                  {accounts.length > 0 && (
-                    <Select value={toAccountId} onValueChange={(val) => val && setToAccountId(val)}>
-                      <SelectTrigger className="w-full h-8 text-xs">
-                        <SelectValue>{accounts.find(a => a.id === toAccountId)?.name}</SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {accounts.filter(a => a.id !== accountId).map((acc) => (
-                          <SelectItem key={acc.id} value={acc.id} className="text-xs">{acc.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-              ) : (
-                <div>
-                  <label className="text-xs font-semibold text-zinc-550 block mb-1">Categoria</label>
-                  {categories.length > 0 && (
-                    <Select value={categoryId} onValueChange={(val) => val && setCategoryId(val)}>
-                      <SelectTrigger className="w-full h-8 text-xs">
-                        <SelectValue>
-                          {(() => {
-                            const cat = categories.find(c => c.id === categoryId);
-                            const CatIcon = getCategoryIcon(cat?.icon || "tag");
-                            return (
-                              <div className="flex items-center gap-1.5">
-                                <CatIcon className="h-3.5 w-3.5 text-zinc-500" />
-                                <span>{getCategoryNameFormatted(cat)}</span>
-                              </div>
-                            );
-                          })()}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {getSortedSelectCategories(type).map((cat) => {
-                          const CatIcon = getCategoryIcon(cat.icon);
-                          const isSub = !!cat.parentId;
-                          return (
-                            <SelectItem key={cat.id} value={cat.id} className="text-xs">
-                              <div className="flex items-center gap-1.5">
-                                <CatIcon className="h-3.5 w-3.5 text-zinc-500" />
-                                <span className={isSub ? "pl-2 font-normal text-zinc-650 dark:text-zinc-400" : "font-bold text-zinc-900 dark:text-zinc-100"}>
-                                  {isSub ? `↳ ${cat.name}` : cat.name}
-                                </span>
-                              </div>
-                            </SelectItem>
-                          );
-                        })}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-semibold text-zinc-550 block mb-1">Data de Vencimento</label>
-                <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-zinc-550 block mb-1">
-                  {type === "transfer" ? "Conta Origem" : "Conta / Cartão"}
-                </label>
-                {accounts.length > 0 && (
-                  <Select value={accountId} onValueChange={(val) => val && setAccountId(val)}>
-                    <SelectTrigger className="w-full h-8 text-xs">
-                      <SelectValue>{accounts.find(a => a.id === accountId)?.name}</SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {accounts.map((acc) => (
-                        <SelectItem key={acc.id} value={acc.id} className="text-xs">{acc.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-semibold text-zinc-550 block mb-1">Valor (R$)</label>
-                <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required />
-              </div>
-              <div className="flex items-center gap-2 pt-5">
-                <input 
-                  type="checkbox" 
-                  id="isClearedForm" 
-                  checked={isClearedForm} 
-                  onChange={(e) => setIsClearedForm(e.target.checked)} 
-                  className="rounded border-zinc-350 text-zinc-950 focus:ring-zinc-950 dark:border-zinc-800 h-4 w-4 cursor-pointer"
-                />
-                <label htmlFor="isClearedForm" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 cursor-pointer select-none">
-                  Lançamento pago/recebido (Liquidado)
-                </label>
-              </div>
-            </div>
-
-            {/* Recorrência / Parcelamento */}
-            {type !== "transfer" && (
-              <div className="pt-2 border-t border-zinc-100 dark:border-zinc-900 space-y-2">
-                {type === "expense" && (
+          <form onSubmit={handleCreateSubmit} className="space-y-6">
+            <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
+              
+              {/* Seção 1: Informações do Lançamento */}
+              <div className="border border-zinc-200 dark:border-zinc-900 rounded-xl overflow-hidden bg-white dark:bg-zinc-950/20">
+                <div className="bg-zinc-50/70 dark:bg-zinc-900/50 px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-900 flex items-center justify-between">
                   <div className="flex items-center gap-2">
+                    <Info className="h-4 w-4 text-[#0B4F83] dark:text-[#218FDE]" />
+                    <span className="font-bold text-xs uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
+                      Informações do Lançamento
+                    </span>
+                  </div>
+                  {isClearedForm ? (
+                    <span className="text-[9px] font-bold bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-200/40 dark:border-emerald-900/30">
+                      {type === 'income' ? 'RECEBIDO' : 'PAGO'}
+                    </span>
+                  ) : (
+                    <span className="text-[9px] font-bold bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-400 px-2.5 py-0.5 rounded-full border border-amber-200/40 dark:border-amber-900/30">
+                      A VENCER
+                    </span>
+                  )}
+                </div>
+
+                <div className="p-4 space-y-4">
+                  {/* Descrição - Full Width */}
+                  <div>
+                    <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Descrição*</label>
+                    <Input 
+                      value={description} 
+                      onChange={(e) => setDescription(e.target.value)} 
+                      placeholder="Informe sobre a receita ou despesa..." 
+                      className="h-9 text-xs" 
+                      required 
+                    />
+                  </div>
+
+                  {/* Número Documento & Tipo */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Número Documento</label>
+                      <Input 
+                        value={documentNumber} 
+                        onChange={(e) => setDocumentNumber(e.target.value)} 
+                        placeholder="Ex: NF-12345" 
+                        className="h-9 text-xs" 
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Tipo de Lançamento*</label>
+                      <Select value={type} onValueChange={(v: any) => {
+                        setType(v);
+                        const firstCat = categories.filter(c => c.type === v)[0]?.id || "";
+                        setCategoryId(firstCat);
+                      }}>
+                        <SelectTrigger className="w-full h-9 text-xs">
+                          <SelectValue>{type === 'expense' ? 'Despesa' : type === 'income' ? 'Receita' : type === 'transfer' ? 'Transferência' : ''}</SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="expense" className="text-xs">Despesa</SelectItem>
+                          <SelectItem value="income" className="text-xs">Receita</SelectItem>
+                          <SelectItem value="transfer" className="text-xs">Transferência</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Conta, Vencimento e Valor */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">
+                        {type === "transfer" ? "Conta Origem*" : "Conta / Cartão*"}
+                      </label>
+                      {accounts.length > 0 && (
+                        <Select value={accountId} onValueChange={(val) => val && setAccountId(val)}>
+                          <SelectTrigger className="w-full h-9 text-xs">
+                            <SelectValue>{accounts.find(a => a.id === accountId)?.name}</SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {accounts.map((acc) => (
+                              <SelectItem key={acc.id} value={acc.id} className="text-xs">{acc.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Data de Vencimento*</label>
+                      <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-9 text-xs" required />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Valor*</label>
+                      <div className="relative flex items-center">
+                        <Input 
+                          type="number" 
+                          step="0.01" 
+                          value={amount} 
+                          onChange={(e) => setAmount(e.target.value)} 
+                          placeholder="0.00" 
+                          className="h-9 text-xs pr-10" 
+                          required 
+                        />
+                        <div className="absolute right-0 top-0 bottom-0 bg-zinc-50 dark:bg-zinc-900 border-l border-zinc-200 dark:border-zinc-800 rounded-r-lg px-3 flex items-center justify-center text-xs font-bold text-zinc-500">
+                          R$
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Categoria & Forma de Pagamento */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      {type === "transfer" ? (
+                        <>
+                          <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Conta Destino*</label>
+                          {accounts.length > 0 && (
+                            <Select value={toAccountId} onValueChange={(val) => val && setToAccountId(val)}>
+                              <SelectTrigger className="w-full h-9 text-xs">
+                                <SelectValue>{accounts.find(a => a.id === toAccountId)?.name}</SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                {accounts.filter(a => a.id !== accountId).map((acc) => (
+                                  <SelectItem key={acc.id} value={acc.id} className="text-xs">{acc.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Categoria</label>
+                          {categories.length > 0 && (
+                            <Select value={categoryId} onValueChange={(val) => val && setCategoryId(val)}>
+                              <SelectTrigger className="w-full h-9 text-xs">
+                                <SelectValue>
+                                  {(() => {
+                                    const cat = categories.find(c => c.id === categoryId);
+                                    const CatIcon = getCategoryIcon(cat?.icon || "tag");
+                                    return (
+                                      <div className="flex items-center gap-1.5">
+                                        <CatIcon className="h-3.5 w-3.5 text-zinc-500" />
+                                        <span>{getCategoryNameFormatted(cat)}</span>
+                                      </div>
+                                    );
+                                  })()}
+                                </SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                {getSortedSelectCategories(type).map((cat) => {
+                                  const CatIcon = getCategoryIcon(cat.icon);
+                                  const isSub = !!cat.parentId;
+                                  return (
+                                    <SelectItem key={cat.id} value={cat.id} className="text-xs">
+                                      <div className="flex items-center gap-1.5">
+                                        <CatIcon className="h-3.5 w-3.5 text-zinc-500" />
+                                        <span className={isSub ? "pl-2 font-normal text-zinc-650 dark:text-zinc-400" : "font-bold text-zinc-900 dark:text-zinc-100"}>
+                                          {isSub ? `↳ ${cat.name}` : cat.name}
+                                        </span>
+                                      </div>
+                                    </SelectItem>
+                                  );
+                                })}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </>
+                      )}
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Forma de Pagamento</label>
+                      <Select value={paymentMethod} onValueChange={(val) => val && setPaymentMethod(val)}>
+                        <SelectTrigger className="w-full h-9 text-xs">
+                          <SelectValue>{paymentMethod}</SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {["Boleto", "Pix", "Cartão de Crédito", "Cartão de Débito", "Dinheiro", "Transferência"].map((method) => (
+                            <SelectItem key={method} value={method} className="text-xs">{method}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Liquidação Checkbox */}
+                  <div className="flex items-center gap-2 pt-2">
                     <input 
                       type="checkbox" 
-                      id="isInstallment" 
-                      checked={isInstallment} 
-                      onChange={(e) => {
-                        setIsInstallment(e.target.checked);
-                        if (e.target.checked) setIsRecurring(false);
-                      }} 
-                      className="rounded border-zinc-300 text-zinc-950 focus:ring-zinc-950 dark:border-zinc-800 cursor-pointer"
+                      id="isClearedForm" 
+                      checked={isClearedForm} 
+                      onChange={(e) => setIsClearedForm(e.target.checked)} 
+                      className="rounded border-zinc-300 text-zinc-950 focus:ring-zinc-950 dark:border-zinc-800 h-4 w-4 cursor-pointer"
                     />
-                    <label htmlFor="isInstallment" className="text-xs font-medium text-zinc-700 dark:text-zinc-300 cursor-pointer">Compra parcelada</label>
+                    <label htmlFor="isClearedForm" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 cursor-pointer select-none">
+                      Lançamento pago/recebido (Liquidado)
+                    </label>
                   </div>
-                )}
+                </div>
+              </div>
 
-                {isInstallment && type === "expense" && (
-                  <div className="pl-5">
-                    <label className="text-[10px] font-semibold text-zinc-500 block mb-1">Número de Parcelas</label>
-                    <Input type="number" min="2" max="60" value={totalInstallments} onChange={(e) => setTotalInstallments(e.target.value)} className="w-24 h-8" />
+              {/* Seção 2: Repetição de Lançamentos */}
+              {type !== "transfer" && (
+                <div className="border border-zinc-200 dark:border-zinc-900 rounded-xl overflow-hidden bg-white dark:bg-zinc-950/20">
+                  <div className="bg-zinc-50/70 dark:bg-zinc-900/50 px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-900 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <RefreshCw className="h-4 w-4 text-[#0B4F83] dark:text-[#218FDE]" />
+                      <span className="font-bold text-xs uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
+                        Repetição de Lançamentos
+                      </span>
+                    </div>
                   </div>
-                )}
 
-                <div className="flex items-center gap-2">
-                  <input 
-                    type="checkbox" 
-                    id="isRecurring" 
-                    checked={isRecurring} 
-                    onChange={(e) => {
-                      setIsRecurring(e.target.checked);
-                      if (e.target.checked) setIsInstallment(false);
-                    }} 
-                    className="rounded border-zinc-300 text-zinc-950 focus:ring-zinc-950 dark:border-zinc-800 cursor-pointer"
-                  />
-                  <label htmlFor="isRecurring" className="text-xs font-medium text-zinc-700 dark:text-zinc-300 cursor-pointer">Lançamento recorrente fixo</label>
+                  <div className="p-4 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Repetição</label>
+                        <Select 
+                          value={isInstallment ? "installment" : isRecurring ? "recurring" : "single"}
+                          onValueChange={(val) => {
+                            if (val === "single") {
+                              setIsInstallment(false);
+                              setIsRecurring(false);
+                            } else if (val === "installment") {
+                              setIsInstallment(true);
+                              setIsRecurring(false);
+                            } else if (val === "recurring") {
+                              setIsInstallment(false);
+                              setIsRecurring(true);
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="w-full h-9 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="single" className="text-xs">Lançamento Único</SelectItem>
+                            {type === "expense" && <SelectItem value="installment" className="text-xs">Parcelado</SelectItem>}
+                            <SelectItem value="recurring" className="text-xs">Recorrente Fixo</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        {isInstallment && (
+                          <>
+                            <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Número de Parcelas</label>
+                            <Input 
+                              type="number" 
+                              min="2" 
+                              max="60" 
+                              value={totalInstallments} 
+                              onChange={(e) => setTotalInstallments(e.target.value)} 
+                              className="h-9 text-xs" 
+                            />
+                          </>
+                        )}
+                        {isRecurring && (
+                          <>
+                            <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Frequência/Período</label>
+                            <Select value={recurrencePeriod} onValueChange={(v: any) => setRecurrencePeriod(v)}>
+                              <SelectTrigger className="w-full h-9 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="weekly" className="text-xs">Semanal</SelectItem>
+                                <SelectItem value="monthly" className="text-xs">Mensal</SelectItem>
+                                <SelectItem value="yearly" className="text-xs">Anual</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Tabela de Projeção de Parcelas */}
+                    {isInstallment && date && (
+                      <div className="mt-3 border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden">
+                        <table className="w-full text-xs text-left">
+                          <thead className="bg-zinc-50 dark:bg-zinc-900 font-bold text-zinc-700 dark:text-zinc-300">
+                            <tr>
+                              <th className="px-4 py-2 border-b border-zinc-200 dark:border-zinc-800">Parcela</th>
+                              <th className="px-4 py-2 border-b border-zinc-200 dark:border-zinc-800">Data de Vencimento</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800 text-zinc-600 dark:text-zinc-400">
+                            {getInstallmentProjections().map((proj) => (
+                              <tr key={proj.installment} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-900/10">
+                                <td className="px-4 py-1.5 font-medium">{proj.installment}</td>
+                                <td className="px-4 py-1.5">{proj.dateStr}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Seção 3: Informações Adicionais */}
+              <div className="border border-zinc-200 dark:border-zinc-900 rounded-xl overflow-hidden bg-white dark:bg-zinc-950/20">
+                <div className="bg-zinc-50/70 dark:bg-zinc-900/50 px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-900 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-[#0B4F83] dark:text-[#218FDE]" />
+                    <span className="font-bold text-xs uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
+                      Informações Adicionais
+                    </span>
+                  </div>
                 </div>
 
-                {isRecurring && (
-                  <div className="pl-5">
-                    <label className="text-[10px] font-semibold text-zinc-500 block mb-1">Frequência</label>
-                    <Select value={recurrencePeriod} onValueChange={(v: any) => setRecurrencePeriod(v)}>
-                      <SelectTrigger className="w-32 h-8 text-xs">
-                        <SelectValue>
-                          {recurrencePeriod === "weekly" ? "Semanal" : recurrencePeriod === "monthly" ? "Mensal" : recurrencePeriod === "yearly" ? "Anual" : ""}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="weekly" className="text-xs">Semanal</SelectItem>
-                        <SelectItem value="monthly" className="text-xs">Mensal</SelectItem>
-                        <SelectItem value="yearly" className="text-xs">Anual</SelectItem>
-                      </SelectContent>
-                    </Select>
+                <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Observação</label>
+                    <textarea 
+                      value={notes} 
+                      onChange={(e) => setNotes(e.target.value)} 
+                      placeholder="Descreva a observação..." 
+                      className="w-full h-[110px] text-xs p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-transparent resize-none focus:outline-none focus:ring-1 focus:ring-zinc-400"
+                    />
                   </div>
-                )}
+                  <div>
+                    <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Comprovante</label>
+                    <div className="border border-dashed border-zinc-300 dark:border-zinc-800 hover:bg-zinc-50/50 dark:hover:bg-zinc-900/10 rounded-lg p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-all relative h-[110px]">
+                      <input 
+                        type="file" 
+                        accept="image/*,application/pdf" 
+                        onChange={handleFileUpload} 
+                        className="absolute inset-0 opacity-0 cursor-pointer" 
+                        disabled={isUploading} 
+                      />
+                      {isUploading ? (
+                        <p className="text-xs text-zinc-500 animate-pulse">Subindo arquivo...</p>
+                      ) : receiptUrl ? (
+                        <div className="flex flex-col items-center">
+                          <CheckCircle className="h-6 w-6 text-emerald-600 dark:text-emerald-400 mb-1" />
+                          <span className="text-[10px] font-semibold text-zinc-700 dark:text-zinc-300 truncate max-w-[180px]" title={uploadedFileName}>
+                            {uploadedFileName}
+                          </span>
+                          <button 
+                            type="button" 
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setReceiptUrl("");
+                              setUploadedFileName("");
+                            }}
+                            className="text-[9px] text-red-500 hover:underline mt-1 font-bold"
+                          >
+                            Excluir Comprovante
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <Upload className="h-5 w-5 text-zinc-400 dark:text-zinc-600 mb-1" />
+                          <span className="text-xs font-bold text-[#0B4F83] dark:text-[#218FDE]">Adicionar Comprovante</span>
+                          <span className="text-[8px] text-zinc-400 dark:text-zinc-500 max-w-[200px] mt-0.5">
+                            Máx: 3MB (JPG, PNG, GIF, PDF)
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
-            )}
 
-            <DialogFooter>
-              <Button type="submit" className="w-full mt-4 bg-zinc-900 text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-950 dark:hover:bg-zinc-200">
+            </div>
+
+            <div className="bg-zinc-50 dark:bg-zinc-900/60 px-6 py-4 flex items-center justify-end gap-3 border-t border-zinc-200 dark:border-zinc-900">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsCreateOpen(false)} 
+                className="h-9 text-xs rounded-lg cursor-pointer"
+              >
+                Salvar e Fechar
+              </Button>
+              <Button 
+                type="submit" 
+                className="h-9 text-xs bg-[#0B4F83] hover:bg-[#083c64] text-white rounded-lg cursor-pointer"
+              >
                 Salvar Lançamento
               </Button>
-            </DialogFooter>
+            </div>
           </form>
         </DialogContent>
       </Dialog>
 
       {/* 2. Modal de Edição (Editar Lançamento) */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950 sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Editar Lançamento</DialogTitle>
-            <DialogDescription>Modifique as propriedades deste lançamento.</DialogDescription>
+        <DialogContent className="border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950 sm:max-w-5xl w-full rounded-2xl p-0 overflow-hidden shadow-2xl">
+          <DialogHeader className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-900 flex flex-row items-center justify-between">
+            <DialogTitle className="text-lg font-bold text-zinc-900 dark:text-zinc-50">
+              Editar Lançamento
+            </DialogTitle>
+            <DialogDescription className="sr-only">Modifique os detalhes do lançamento.</DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleEditSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-semibold text-zinc-550 block mb-1">Nº Documento</label>
-                <Input value={documentNumber} onChange={(e) => setDocumentNumber(e.target.value)} placeholder="Ex: NF-12345, Fatura..." />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-zinc-550 block mb-1">Descrição</label>
-                <Input value={description} onChange={(e) => setDescription(e.target.value)} required />
-              </div>
-            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-semibold text-zinc-550 block mb-1">Tipo</label>
-                <Select value={type} onValueChange={(v: any) => {
-                  setType(v);
-                  const firstCat = categories.filter(c => c.type === v)[0]?.id || "";
-                  setCategoryId(firstCat);
-                }}>
-                  <SelectTrigger className="w-full h-8 text-xs">
-                    <SelectValue>{type === 'expense' ? 'Despesa' : type === 'income' ? 'Receita' : type === 'transfer' ? 'Transferência' : ''}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="expense" className="text-xs">Despesa</SelectItem>
-                    <SelectItem value="income" className="text-xs">Receita</SelectItem>
-                    <SelectItem value="transfer" className="text-xs">Transferência</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {type === "transfer" ? (
-                <div>
-                  <label className="text-xs font-semibold text-zinc-550 block mb-1">Conta Destino</label>
-                  {accounts.length > 0 && (
-                    <Select value={toAccountId} onValueChange={(val) => val && setToAccountId(val)}>
-                      <SelectTrigger className="w-full h-8 text-xs">
-                        <SelectValue>{accounts.find(a => a.id === toAccountId)?.name}</SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {accounts.filter(a => a.id !== accountId).map((acc) => (
-                          <SelectItem key={acc.id} value={acc.id} className="text-xs">{acc.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+          <form onSubmit={handleEditSubmit} className="space-y-6">
+            <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
+              
+              {/* Seção 1: Informações do Lançamento */}
+              <div className="border border-zinc-200 dark:border-zinc-900 rounded-xl overflow-hidden bg-white dark:bg-zinc-950/20">
+                <div className="bg-zinc-50/70 dark:bg-zinc-900/50 px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-900 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Info className="h-4 w-4 text-[#0B4F83] dark:text-[#218FDE]" />
+                    <span className="font-bold text-xs uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
+                      Informações do Lançamento
+                    </span>
+                  </div>
+                  {isClearedForm ? (
+                    <span className="text-[9px] font-bold bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-200/40 dark:border-emerald-900/30">
+                      {type === 'income' ? 'RECEBIDO' : 'PAGO'}
+                    </span>
+                  ) : (
+                    <span className="text-[9px] font-bold bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-400 px-2.5 py-0.5 rounded-full border border-amber-200/40 dark:border-amber-900/30">
+                      A VENCER
+                    </span>
                   )}
                 </div>
-              ) : (
-                <div>
-                  <label className="text-xs font-semibold text-zinc-550 block mb-1">Categoria</label>
-                  {categories.length > 0 && (
-                    <Select value={categoryId} onValueChange={(val) => val && setCategoryId(val)}>
-                      <SelectTrigger className="w-full h-8 text-xs">
-                        <SelectValue>
-                          {(() => {
-                            const cat = categories.find(c => c.id === categoryId);
-                            const CatIcon = getCategoryIcon(cat?.icon || "tag");
-                            return (
-                              <div className="flex items-center gap-1.5">
-                                <CatIcon className="h-3.5 w-3.5 text-zinc-500" />
-                                <span>{getCategoryNameFormatted(cat)}</span>
-                              </div>
-                            );
-                          })()}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {getSortedSelectCategories(type).map((cat) => {
-                          const CatIcon = getCategoryIcon(cat.icon);
-                          const isSub = !!cat.parentId;
-                          return (
-                            <SelectItem key={cat.id} value={cat.id} className="text-xs">
-                              <div className="flex items-center gap-1.5">
-                                <CatIcon className="h-3.5 w-3.5 text-zinc-500" />
-                                <span className={isSub ? "pl-2 font-normal text-zinc-650 dark:text-zinc-400" : "font-bold text-zinc-900 dark:text-zinc-100"}>
-                                  {isSub ? `↳ ${cat.name}` : cat.name}
-                                </span>
-                              </div>
-                            </SelectItem>
-                          );
-                        })}
-                      </SelectContent>
-                    </Select>
-                  )}
+
+                <div className="p-4 space-y-4">
+                  {/* Descrição - Full Width */}
+                  <div>
+                    <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Descrição*</label>
+                    <Input 
+                      value={description} 
+                      onChange={(e) => setDescription(e.target.value)} 
+                      placeholder="Informe sobre a receita ou despesa..." 
+                      className="h-9 text-xs" 
+                      required 
+                    />
+                  </div>
+
+                  {/* Número Documento & Tipo */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Número Documento</label>
+                      <Input 
+                        value={documentNumber} 
+                        onChange={(e) => setDocumentNumber(e.target.value)} 
+                        placeholder="Ex: NF-12345" 
+                        className="h-9 text-xs" 
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Tipo de Lançamento*</label>
+                      <Select value={type} onValueChange={(v: any) => {
+                        setType(v);
+                        const firstCat = categories.filter(c => c.type === v)[0]?.id || "";
+                        setCategoryId(firstCat);
+                      }}>
+                        <SelectTrigger className="w-full h-9 text-xs">
+                          <SelectValue>{type === 'expense' ? 'Despesa' : type === 'income' ? 'Receita' : type === 'transfer' ? 'Transferência' : ''}</SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="expense" className="text-xs">Despesa</SelectItem>
+                          <SelectItem value="income" className="text-xs">Receita</SelectItem>
+                          <SelectItem value="transfer" className="text-xs">Transferência</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Conta, Vencimento e Valor */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">
+                        {type === "transfer" ? "Conta Origem*" : "Conta / Cartão*"}
+                      </label>
+                      {accounts.length > 0 && (
+                        <Select value={accountId} onValueChange={(val) => val && setAccountId(val)}>
+                          <SelectTrigger className="w-full h-9 text-xs">
+                            <SelectValue>{accounts.find(a => a.id === accountId)?.name}</SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {accounts.map((acc) => (
+                              <SelectItem key={acc.id} value={acc.id} className="text-xs">{acc.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Data de Vencimento*</label>
+                      <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-9 text-xs" required />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Valor*</label>
+                      <div className="relative flex items-center">
+                        <Input 
+                          type="number" 
+                          step="0.01" 
+                          value={amount} 
+                          onChange={(e) => setAmount(e.target.value)} 
+                          placeholder="0.00" 
+                          className="h-9 text-xs pr-10" 
+                          required 
+                        />
+                        <div className="absolute right-0 top-0 bottom-0 bg-zinc-50 dark:bg-zinc-900 border-l border-zinc-200 dark:border-zinc-800 rounded-r-lg px-3 flex items-center justify-center text-xs font-bold text-zinc-500">
+                          R$
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Categoria & Forma de Pagamento */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      {type === "transfer" ? (
+                        <>
+                          <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Conta Destino*</label>
+                          {accounts.length > 0 && (
+                            <Select value={toAccountId} onValueChange={(val) => val && setToAccountId(val)}>
+                              <SelectTrigger className="w-full h-9 text-xs">
+                                <SelectValue>{accounts.find(a => a.id === toAccountId)?.name}</SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                {accounts.filter(a => a.id !== accountId).map((acc) => (
+                                  <SelectItem key={acc.id} value={acc.id} className="text-xs">{acc.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Categoria</label>
+                          {categories.length > 0 && (
+                            <Select value={categoryId} onValueChange={(val) => val && setCategoryId(val)}>
+                              <SelectTrigger className="w-full h-9 text-xs">
+                                <SelectValue>
+                                  {(() => {
+                                    const cat = categories.find(c => c.id === categoryId);
+                                    const CatIcon = getCategoryIcon(cat?.icon || "tag");
+                                    return (
+                                      <div className="flex items-center gap-1.5">
+                                        <CatIcon className="h-3.5 w-3.5 text-zinc-500" />
+                                        <span>{getCategoryNameFormatted(cat)}</span>
+                                      </div>
+                                    );
+                                  })()}
+                                </SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                {getSortedSelectCategories(type).map((cat) => {
+                                  const CatIcon = getCategoryIcon(cat.icon);
+                                  const isSub = !!cat.parentId;
+                                  return (
+                                    <SelectItem key={cat.id} value={cat.id} className="text-xs">
+                                      <div className="flex items-center gap-1.5">
+                                        <CatIcon className="h-3.5 w-3.5 text-zinc-500" />
+                                        <span className={isSub ? "pl-2 font-normal text-zinc-650 dark:text-zinc-400" : "font-bold text-zinc-900 dark:text-zinc-100"}>
+                                          {isSub ? `↳ ${cat.name}` : cat.name}
+                                        </span>
+                                      </div>
+                                    </SelectItem>
+                                  );
+                                })}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </>
+                      )}
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Forma de Pagamento</label>
+                      <Select value={paymentMethod} onValueChange={(val) => val && setPaymentMethod(val)}>
+                        <SelectTrigger className="w-full h-9 text-xs">
+                          <SelectValue>{paymentMethod}</SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {["Boleto", "Pix", "Cartão de Crédito", "Cartão de Débito", "Dinheiro", "Transferência"].map((method) => (
+                            <SelectItem key={method} value={method} className="text-xs">{method}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                 </div>
-              )}
+              </div>
+
+              {/* Seção 3: Informações Adicionais */}
+              <div className="border border-zinc-200 dark:border-zinc-900 rounded-xl overflow-hidden bg-white dark:bg-zinc-950/20">
+                <div className="bg-zinc-50/70 dark:bg-zinc-900/50 px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-900 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-[#0B4F83] dark:text-[#218FDE]" />
+                    <span className="font-bold text-xs uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
+                      Informações Adicionais
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Observação</label>
+                    <textarea 
+                      value={notes} 
+                      onChange={(e) => setNotes(e.target.value)} 
+                      placeholder="Descreva a observação..." 
+                      className="w-full h-[110px] text-xs p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-transparent resize-none focus:outline-none focus:ring-1 focus:ring-zinc-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Comprovante</label>
+                    <div className="border border-dashed border-zinc-300 dark:border-zinc-800 hover:bg-zinc-50/50 dark:hover:bg-zinc-900/10 rounded-lg p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-all relative h-[110px]">
+                      <input 
+                        type="file" 
+                        accept="image/*,application/pdf" 
+                        onChange={handleFileUpload} 
+                        className="absolute inset-0 opacity-0 cursor-pointer" 
+                        disabled={isUploading} 
+                      />
+                      {isUploading ? (
+                        <p className="text-xs text-zinc-500 animate-pulse">Subindo arquivo...</p>
+                      ) : receiptUrl ? (
+                        <div className="flex flex-col items-center">
+                          <CheckCircle className="h-6 w-6 text-emerald-600 dark:text-emerald-400 mb-1" />
+                          <span className="text-[10px] font-semibold text-zinc-700 dark:text-zinc-300 truncate max-w-[180px]" title={uploadedFileName}>
+                            {uploadedFileName}
+                          </span>
+                          <button 
+                            type="button" 
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setReceiptUrl("");
+                              setUploadedFileName("");
+                            }}
+                            className="text-[9px] text-red-500 hover:underline mt-1 font-bold"
+                          >
+                            Excluir Comprovante
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <Upload className="h-5 w-5 text-zinc-400 dark:text-zinc-600 mb-1" />
+                          <span className="text-xs font-bold text-[#0B4F83] dark:text-[#218FDE]">Adicionar Comprovante</span>
+                          <span className="text-[8px] text-zinc-400 dark:text-zinc-500 max-w-[200px] mt-0.5">
+                            Máx: 3MB (JPG, PNG, GIF, PDF)
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-semibold text-zinc-550 block mb-1">Data de Vencimento</label>
-                <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-zinc-550 block mb-1">Conta / Cartão</label>
-                {accounts.length > 0 && (
-                  <Select value={accountId} onValueChange={(val) => val && setAccountId(val)}>
-                    <SelectTrigger className="w-full h-8 text-xs">
-                      <SelectValue>{accounts.find(a => a.id === accountId)?.name}</SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {accounts.map((acc) => (
-                        <SelectItem key={acc.id} value={acc.id} className="text-xs">{acc.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-semibold text-zinc-550 block mb-1">Valor (R$)</label>
-                <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="submit" className="w-full mt-4 bg-zinc-900 text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-950 dark:hover:bg-zinc-200">
+            <div className="bg-zinc-50 dark:bg-zinc-900/60 px-6 py-4 flex items-center justify-end gap-3 border-t border-zinc-200 dark:border-zinc-900">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsEditOpen(false)} 
+                className="h-9 text-xs rounded-lg cursor-pointer"
+              >
+                Salvar e Fechar
+              </Button>
+              <Button 
+                type="submit" 
+                className="h-9 text-xs bg-[#0B4F83] hover:bg-[#083c64] text-white rounded-lg cursor-pointer"
+              >
                 Atualizar Lançamento
               </Button>
-            </DialogFooter>
+            </div>
           </form>
         </DialogContent>
       </Dialog>

@@ -30,6 +30,9 @@ export async function getTransactions() {
         categoryId: categories.id,
         toAccountName: drizzleSql<string | null>`(SELECT name FROM bank_account WHERE id = ${transactions.toAccountId})`,
         documentNumber: transactions.documentNumber,
+        paymentMethod: transactions.paymentMethod,
+        notes: transactions.notes,
+        receiptUrl: transactions.receiptUrl,
       })
       .from(transactions)
       .innerJoin(bankAccounts, eq(transactions.accountId, bankAccounts.id))
@@ -64,6 +67,9 @@ export async function createTransaction(data: {
   recurrencePeriod?: "none" | "weekly" | "monthly" | "yearly";
   isCleared?: boolean;
   documentNumber?: string;
+  paymentMethod?: string;
+  notes?: string;
+  receiptUrl?: string;
 }) {
   const userId = await getUserId();
   // Parse date as UTC midnight to avoid local timezone shifts
@@ -98,6 +104,9 @@ export async function createTransaction(data: {
             parentId,
             isCleared: i === 1 ? isCleared : false,
             documentNumber: data.documentNumber || null,
+            paymentMethod: data.paymentMethod || null,
+            notes: data.notes || null,
+            receiptUrl: data.receiptUrl || null,
           })
         );
       }
@@ -140,6 +149,9 @@ export async function createTransaction(data: {
             parentId,
             isCleared: i === 0 ? isCleared : false,
             documentNumber: data.documentNumber || null,
+            paymentMethod: data.paymentMethod || null,
+            notes: data.notes || null,
+            receiptUrl: data.receiptUrl || null,
           })
         );
       }
@@ -165,6 +177,9 @@ export async function createTransaction(data: {
         description: data.description,
         isCleared: isCleared,
         documentNumber: data.documentNumber || null,
+        paymentMethod: data.paymentMethod || null,
+        notes: data.notes || null,
+        receiptUrl: data.receiptUrl || null,
       }).returning();
 
       // Ajusta Saldos se for liquidado
@@ -202,6 +217,9 @@ export async function updateTransaction(
     categoryId?: string;
     toAccountId?: string;
     documentNumber?: string;
+    paymentMethod?: string;
+    notes?: string;
+    receiptUrl?: string;
   }
 ) {
   const userId = await getUserId();
@@ -244,6 +262,9 @@ export async function updateTransaction(
         categoryId: data.type === "transfer" ? null : data.categoryId || null,
         toAccountId: data.type === "transfer" ? data.toAccountId : null,
         documentNumber: data.documentNumber || null,
+        paymentMethod: data.paymentMethod || null,
+        notes: data.notes || null,
+        receiptUrl: data.receiptUrl || null,
       })
       .where(and(eq(transactions.id, id), eq(transactions.userId, userId)))
       .returning();

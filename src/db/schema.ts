@@ -136,6 +136,9 @@ export const transactions = pgTable("transaction", {
   
   isCleared: boolean("is_cleared").default(true).notNull(), // Efetivado / Pago
   documentNumber: text("document_number"),
+  paymentMethod: text("payment_method"),
+  notes: text("notes"),
+  receiptUrl: text("receipt_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
