@@ -39,6 +39,7 @@ Este documento serve como repositório centralizado de todas as funcionalidades,
 ### 5. Gestão de Contas e Cartões
 - **Múltiplos Tipos de Contas**: Suporte a Contas Correntes e Cartões de Crédito.
 - **Controle de Saldo Inicial**: Cadastro de fundos iniciais por conta para calibração de cálculos.
+- **Visualização de Contas na Listagem (Badges Coloridas)**: Exibição do nome da conta na tabela de transações utilizando um selo (badge) estilizado dinamicamente com a cor cadastrada da conta (usando fallback cinza caso não haja cor definida), mantendo consistência com o estilo visual do sistema.
 
 ### 6. Lançamentos com Parcelas e Recorrência
 - **Parcelamento Inteligente**: Criação de transações divididas em múltiplas parcelas vinculadas, com cálculo automático da parcela ativa (ex: `1/12`, `2/12`).
@@ -52,3 +53,9 @@ Este documento serve como repositório centralizado de todas as funcionalidades,
 - **Customização Avançada (62 Ícones)**: Escolha expandida de 62 ícones temáticos de receitas e despesas organizados em uma paleta seletora rolável e otimizada.
 - **Consistência Visual de Cores**: As cores selecionadas pelo usuário para suas categorias são automaticamente sincronizadas e exibidas em tempo real nos selos de transações (nas páginas de lançamentos e do painel principal) e nas fatias/legendas do gráfico de despesas do Dashboard.
 - **Seleção Hierárquica nos Lançamentos**: O menu de seleção de categoria na tela de lançamentos exibe de forma clara e identada a árvore hierárquica (ex: `Moradia > Energia / Luz` ou `↳ Energia / Luz`).
+
+### 8. Upload e Anexo de Comprovantes
+- **Upload Seguro**: Ação de servidor (`uploadReceipt`) que salva arquivos de comprovantes na pasta `/public/uploads` com validação de tamanho máximo de 3 MB e higienização/renomeação inteligente contra conflitos.
+- **Rota de API Protegida (`/api/uploads/[filename]`)**: Rota que valida a sessão do usuário via NextAuth antes de servir os arquivos, prevenindo vulnerabilidades de Path Traversal e garantindo privacidade dos dados.
+- **Visualização Rápida**: Ícone de clipe de papel contextualizado na linha de lançamentos que direciona o usuário autenticado para a visualização direta do anexo.
+
