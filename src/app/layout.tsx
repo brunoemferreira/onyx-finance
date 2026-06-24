@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FinSaaS - Gestão Financeira Monocromática",
+  title: "Onyx Finance - Gestão Financeira Monocromática",
   description: "Controle suas contas, cartões de crédito e parcelamentos com simplicidade e precisão.",
 };
 

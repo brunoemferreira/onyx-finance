@@ -974,7 +974,7 @@ export default function TransactionsPage() {
                   </TableHead>
                   <TableHead className="px-4 text-xs font-medium w-32">Nº Documento</TableHead>
                   <TableHead 
-                    className="text-xs font-medium cursor-pointer select-none hover:bg-zinc-100/50 dark:hover:bg-zinc-900/50 px-2 rounded-lg transition-colors"
+                    className="text-xs font-medium cursor-pointer select-none hover:bg-zinc-100/50 dark:hover:bg-zinc-900/50 px-2 transition-colors"
                     onClick={() => handleSort("date")}
                   >
                     <div className="flex items-center gap-1">
@@ -982,7 +982,7 @@ export default function TransactionsPage() {
                     </div>
                   </TableHead>
                   <TableHead 
-                    className="text-xs font-medium cursor-pointer select-none hover:bg-zinc-100/50 dark:hover:bg-zinc-900/50 px-2 rounded-lg transition-colors"
+                    className="text-xs font-medium cursor-pointer select-none hover:bg-zinc-100/50 dark:hover:bg-zinc-900/50 px-2 transition-colors"
                     onClick={() => handleSort("description")}
                   >
                     <div className="flex items-center gap-1">
@@ -991,7 +991,7 @@ export default function TransactionsPage() {
                   </TableHead>
                   <TableHead className="px-4 text-xs font-medium w-32">Status</TableHead>
                   <TableHead 
-                    className="text-xs font-medium cursor-pointer select-none hover:bg-zinc-100/50 dark:hover:bg-zinc-900/50 px-2 rounded-lg transition-colors"
+                    className="text-xs font-medium cursor-pointer select-none hover:bg-zinc-100/50 dark:hover:bg-zinc-900/50 px-2 transition-colors"
                     onClick={() => handleSort("categoryName")}
                   >
                     <div className="flex items-center gap-1">
@@ -999,7 +999,7 @@ export default function TransactionsPage() {
                     </div>
                   </TableHead>
                   <TableHead 
-                    className="text-xs font-medium cursor-pointer select-none hover:bg-zinc-100/50 dark:hover:bg-zinc-900/50 px-2 rounded-lg transition-colors"
+                    className="text-xs font-medium cursor-pointer select-none hover:bg-zinc-100/50 dark:hover:bg-zinc-900/50 px-2 transition-colors"
                     onClick={() => handleSort("accountName")}
                   >
                     <div className="flex items-center gap-1">
@@ -1007,7 +1007,7 @@ export default function TransactionsPage() {
                     </div>
                   </TableHead>
                   <TableHead 
-                    className="text-right text-xs font-medium cursor-pointer select-none hover:bg-zinc-100/50 dark:hover:bg-zinc-900/50 px-2 rounded-lg transition-colors"
+                    className="text-right text-xs font-medium cursor-pointer select-none hover:bg-zinc-100/50 dark:hover:bg-zinc-900/50 px-2 transition-colors"
                     onClick={() => handleSort("amount")}
                   >
                     <div className="flex items-center justify-end gap-1">
