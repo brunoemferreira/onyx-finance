@@ -1612,7 +1612,7 @@ export default function TransactionsPage() {
                           }}
                         >
                           <SelectTrigger className="w-full h-9 text-xs">
-                            <SelectValue />
+                            <SelectValue>{isInstallment ? "Parcelado" : isRecurring ? "Recorrente Fixo" : "Lançamento Único"}</SelectValue>
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="single" className="text-xs">Lançamento Único</SelectItem>
@@ -1641,7 +1641,7 @@ export default function TransactionsPage() {
                             <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Frequência/Período</label>
                             <Select value={recurrencePeriod} onValueChange={(v: any) => setRecurrencePeriod(v)}>
                               <SelectTrigger className="w-full h-9 text-xs">
-                                <SelectValue />
+                                <SelectValue>{recurrencePeriod === "weekly" ? "Semanal" : recurrencePeriod === "monthly" ? "Mensal" : recurrencePeriod === "yearly" ? "Anual" : ""}</SelectValue>
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="weekly" className="text-xs">Semanal</SelectItem>
