@@ -23,12 +23,12 @@ Este documento serve como o roteiro (roadmap) oficial de desenvolvimento do proj
 - [x] Inclusão da visualização opcional de saldo corrente (calculado linha por linha retroativamente) com toggle no painel de transações.
 - [x] Criação da interface para edição completa de contas e cartões de crédito.
 
-### **Fase 4: Autenticação, Perfil e Logout (Próxima Fase)**
-- [ ] **Proteção de Rotas:** Implementar middleware do NextAuth para proteger todas as subrotas do `/dashboard` e redirecionar usuários não autenticados.
-- [ ] **Página de Login:** Criar uma página de login personalizada e visualmente refinada (acessível via `/login` ou `/auth/signin`) oferecendo botões de login social via Google e GitHub.
-- [ ] **Fluxo de Logout:** Adicionar botão "Sair" (Logout) no rodapé do menu lateral do dashboard, integrado à função `signOut` do NextAuth.
-- [ ] **Dados de Perfil:** Atualizar a barra lateral para exibir dinamicamente o nome, e-mail e foto do usuário vindo da sessão real ativa.
-- [ ] **Página de Perfil:** Criar uma página de perfil dedicada (ex: `/dashboard/profile`) permitindo visualizar as informações cadastrais do usuário e histórico da conta.
+### **Fase 4: Autenticação, Perfil e Logout (Concluída)**
+- [x] **Proteção de Rotas:** Implementar middleware do NextAuth para proteger todas as subrotas do `/dashboard` e redirecionar usuários não autenticados.
+- [x] **Página de Login:** Criar uma página de login personalizada e visualmente refinada (acessível via `/login` ou `/auth/signin`) oferecendo botões de login social via Google e GitHub.
+- [x] **Fluxo de Logout:** Adicionar botão "Sair" (Logout) no rodapé do menu lateral do dashboard, integrado à função `signOut` do NextAuth.
+- [x] **Dados de Perfil:** Atualizar a barra lateral para exibir dinamicamente o nome, e-mail e foto do usuário vindo da sessão real ativa.
+- [x] **Página de Perfil:** Criar uma página de perfil dedicada (ex: `/dashboard/profile`) permitindo visualizar as informações cadastrais do usuário e histórico da conta.
 
 ### **Fase 6: Integração SaaS e Stripe (Fase Final)**
 - [ ] **Assinatura Premium:** Implementar fluxo de checkout via Stripe Checkout para o plano Premium.
