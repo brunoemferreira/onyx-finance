@@ -137,3 +137,14 @@ O projeto está totalmente containerizado utilizando Docker e Docker Compose, di
 Os serviços expostos no Docker Compose são:
 - **`web-finance-app`**: Servidor Node contendo o bundle Next.js de produção.
 - **`web-finance-postgres`**: Banco de dados relacional PostgreSQL com volumes persistentes estruturados no diretório de dados do Docker.
+
+---
+
+## 🔮 Alterações Futuras (Planejamento SaaS & Stripe)
+
+As seguintes funcionalidades e integrações estão mapeadas para desenvolvimento em fases futuras:
+
+*   **Assinatura Premium:** Integração com o fluxo de checkout do **Stripe Checkout** para possibilitar assinaturas recorrentes pagas.
+*   **Portal do Assinante:** Habilitação do portal de faturamento autogerenciável **Stripe Billing Portal**, permitindo aos usuários visualizar faturas e gerenciar/cancelar suas assinaturas.
+*   **Webhooks do Stripe:** Configuração de rotas de webhook dedicadas para receber notificações em tempo real sobre eventos de pagamento (criação, modificação ou cancelamento de assinaturas) e sincronizá-los diretamente com o banco de dados.
+*   **Paywall & Limitação de Recursos:** Introdução de middleware de controle de limites para contas gratuitas (ex: máximo de 2 contas bancárias cadastradas e limite de até 50 transações por mês).
