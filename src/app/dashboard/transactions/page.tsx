@@ -1346,7 +1346,9 @@ export default function TransactionsPage() {
                     <label className="text-[10px] font-semibold text-zinc-500 block mb-1">Frequência</label>
                     <Select value={recurrencePeriod} onValueChange={(v: any) => setRecurrencePeriod(v)}>
                       <SelectTrigger className="w-32 h-8 text-xs">
-                        <SelectValue />
+                        <SelectValue>
+                          {recurrencePeriod === "weekly" ? "Semanal" : recurrencePeriod === "monthly" ? "Mensal" : recurrencePeriod === "yearly" ? "Anual" : ""}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="weekly" className="text-xs">Semanal</SelectItem>
