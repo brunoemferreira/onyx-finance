@@ -79,3 +79,10 @@ Este documento serve como repositório centralizado de todas as funcionalidades,
 - **Ambiente de Testes Otimizado (Console Log)**: Quando as credenciais de SMTP não estão parametrizadas no `.env`, o sistema imprime o link de redefinição contendo o token diretamente nos logs do terminal do Docker, agilizando testes locais e validações rápidas.
 - **Integração SMTP (nodemailer)**: Suporte pronto para disparar e-mails formatados em HTML e texto claro em produção, bastando parametrizar as variáveis SMTP em seu arquivo de variáveis de ambiente.
 - **Interface Segura**: Páginas dedicadas `/forgot-password` e `/reset-password` integradas ao design system escuro e responsivo do Onyx Finance, incluindo validações de senha robustas e notificações via Toast.
+
+### 12. Seletor Premium de Instituições Financeiras (Combobox Pesquisável)
+- **Mais de 40 Bancos Integrados**: Listagem automática de todas as instituições financeiras e fintechs atuantes no Brasil com base na biblioteca local do projeto.
+- **Barra de Busca Inteligente**: Caixa de texto com filtro instantâneo por digitação que localiza bancos por nome ou palavra-chave de forma extremamente rápida.
+- **Atalhos de Bancos Populares**: Seção superior com grid de ícones dos 8 bancos mais utilizados (Nubank, Itaú, Bradesco, etc.) permitindo seleção instantânea com um único clique.
+- **Consistência Visual com Logotipos**: Exibição integrada do logotipo em alta definição do banco selecionado em todos os cards de contas e no formulário de criação/edição.
+- **Fechamento e Foco Inteligentes**: Interface flutuante que se fecha automaticamente ao selecionar um item ou ao clicar fora da área do seletor.

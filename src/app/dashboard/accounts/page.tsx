@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Pencil, Check, Wallet, CreditCard as CreditCardIcon, Landmark, PiggyBank } from "lucide-react";
 import BankLogo, { getBankDetails } from "@/components/BankLogo";
+import BankSelector from "@/components/BankSelector";
+import { listarBancos, obterPreset } from "@/lib/bancos-brasil/core.js";
 
 type BankAccount = {
   id: string;
@@ -26,23 +28,70 @@ type BankAccount = {
   accountDigit: string | null;
 };
 
-const INSTITUTIONS = [
-  { id: "nubank", name: "Nubank", color: "#8a05be" },
-  { id: "itau", name: "Itaú", color: "#ec7000" },
-  { id: "bradesco", name: "Bradesco", color: "#cc092f" },
-  { id: "santander", name: "Santander", color: "#ec0000" },
-  { id: "bancodobrasil", name: "Banco do Brasil", color: "#003b43" },
-  { id: "caixa", name: "Caixa Econômica", color: "#0066a1" },
-  { id: "inter", name: "Inter", color: "#ff7a00" },
-  { id: "c6", name: "C6 Bank", color: "#18181b" },
-  { id: "xp", name: "XP Investimentos", color: "#e5c158" },
-  { id: "btg", name: "BTG Pactual", color: "#001f3f" },
-  { id: "sicoob", name: "Sicoob", color: "#003641" },
-  { id: "sicredi", name: "Sicredi", color: "#3fa110" },
-  { id: "mercadopago", name: "Mercado Pago", color: "#009ee3" },
-  { id: "picpay", name: "PicPay", color: "#11c76f" },
-  { id: "generic", name: "Outro / Personalizado", color: "#71717a" }
-];
+const BANK_NAMES: Record<string, string> = {
+  nubank: "Nubank",
+  itau: "Itaú",
+  bradesco: "Bradesco",
+  santander: "Santander",
+  bancodobrasil: "Banco do Brasil",
+  caixa: "Caixa Econômica",
+  inter: "Inter",
+  c6: "C6 Bank",
+  xp: "XP Investimentos",
+  btg: "BTG Pactual",
+  sicoob: "Sicoob",
+  sicredi: "Sicredi",
+  mercadopago: "Mercado Pago",
+  picpay: "PicPay",
+  cora: "Cora",
+  infinitepay: "InfinitePay",
+  pagbank: "PagBank",
+  digio: "Digio",
+  neon: "Neon",
+  pan: "Banco Pan",
+  safra: "Safra",
+  wise: "Wise",
+  paypal: "PayPal",
+  stripe: "Stripe",
+  stone: "Stone",
+  next: "Next",
+  original: "Banco Original",
+  rico: "Rico",
+  revolut: "Revolut",
+  bs2: "BS2",
+  bv: "Banco BV",
+  efibank: "EFI Bank",
+  ton: "Ton",
+  iugu: "Iugu",
+  asaas: "Asaas",
+  ngcash: "NG.CASH",
+  avenue: "Avenue",
+  nomad: "Nomad",
+  mercantil: "Mercantil",
+  bmg: "Banco BMG",
+  agibank: "Agibank"
+};
+
+const INSTITUTIONS = (() => {
+  const list = listarBancos().map((id) => {
+    const preset = obterPreset(id);
+    return {
+      id,
+      name: BANK_NAMES[id] || (id.charAt(0).toUpperCase() + id.slice(1)),
+      color: preset?.fundo || "#71717a"
+    };
+  });
+  list.push({
+    id: "generic",
+    name: "Outro / Personalizado",
+    color: "#71717a"
+  });
+  return list.sort((a, b) => {
+    if (a.id === "generic") return 1;
+    if (b.id === "generic") return -1;
+    return a.name.localeCompare(b.name, "pt-BR");
+  });
+})();
 
 const formatCurrencyBRL = (val: string) => {
   const digits = val.replace(/\D/g, "");
@@ -375,31 +424,7 @@ export default function AccountsPage() {
           {/* Campo Instituição em Linha Única - Modificado para h-16 e Logos h-9 */}
           <div>
             <label className="text-xs font-semibold text-zinc-500 block mb-1.5">Instituição Financeira</label>
-            <Select value={institution} onValueChange={(v) => v && handleInstitutionChange(v, false)}>
-              <SelectTrigger className="w-full h-16 text-base">
-                <SelectValue>
-                  {(() => {
-                    const selected = INSTITUTIONS.find(i => i.id === institution);
-                    return (
-                      <div className="flex items-center gap-3">
-                        <BankLogo institution={institution} className="h-9 w-9 rounded-lg" />
-                        <span className="font-bold text-zinc-800 dark:text-zinc-200 text-base">{selected?.name}</span>
-                      </div>
-                    );
-                  })()}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {INSTITUTIONS.map(inst => (
-                  <SelectItem key={inst.id} value={inst.id} className="text-base py-3">
-                    <div className="flex items-center gap-3">
-                      <BankLogo institution={inst.id} className="h-9 w-9 rounded-lg" />
-                      <span className="font-semibold">{inst.name}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <BankSelector value={institution} onValueChange={(v) => handleInstitutionChange(v, false)} type={type} />
           </div>
 
           {/* Campo Apelido da Conta em Linha Única */}
@@ -551,31 +576,7 @@ export default function AccountsPage() {
           {/* Campo Instituição em Linha Única - Modificado para h-16 e Logos h-9 */}
           <div>
             <label className="text-xs font-semibold text-zinc-500 block mb-1.5">Instituição Financeira</label>
-            <Select value={editInstitution} onValueChange={(v) => v && handleInstitutionChange(v, true)}>
-              <SelectTrigger className="w-full h-16 text-base">
-                <SelectValue>
-                  {(() => {
-                    const selected = INSTITUTIONS.find(i => i.id === editInstitution);
-                    return (
-                      <div className="flex items-center gap-3">
-                        <BankLogo institution={editInstitution} className="h-9 w-9 rounded-lg" />
-                        <span className="font-bold text-zinc-800 dark:text-zinc-200 text-base">{selected?.name}</span>
-                      </div>
-                    );
-                  })()}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {INSTITUTIONS.map(inst => (
-                  <SelectItem key={inst.id} value={inst.id} className="text-base py-3">
-                    <div className="flex items-center gap-3">
-                      <BankLogo institution={inst.id} className="h-9 w-9 rounded-lg" />
-                      <span className="font-semibold">{inst.name}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <BankSelector value={editInstitution} onValueChange={(v) => handleInstitutionChange(v, true)} type={editType} />
           </div>
 
           {/* Campo Apelido da Conta em Linha Única */}
