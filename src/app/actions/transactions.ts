@@ -5,6 +5,7 @@ import { transactions, bankAccounts, categories } from "@/db/schema";
 import { getUserId } from "./accounts";
 import { eq, and, desc, sql as drizzleSql, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { addMonthsUTC } from "@/lib/utils";
 
 // 1. Listar todas as transações com joins para nomes de conta e categoria
 export async function getTransactions() {
@@ -86,8 +87,7 @@ export async function createTransaction(data: {
       
       const insertPromises = [];
       for (let i = 1; i <= data.totalInstallments; i++) {
-        const installmentDate = new Date(baseDate);
-        installmentDate.setMonth(baseDate.getMonth() + (i - 1));
+        const installmentDate = addMonthsUTC(baseDate, i - 1);
 
         insertPromises.push(
           db.insert(transactions).values({
@@ -126,11 +126,11 @@ export async function createTransaction(data: {
       
       // Criamos a primeira hoje (efetivada) e as 11 próximas agendadas (não efetivadas)
       for (let i = 0; i < 12; i++) {
-        const recurringDate = new Date(baseDate);
+        let recurringDate = new Date(baseDate);
         if (data.recurrencePeriod === "weekly") {
           recurringDate.setDate(baseDate.getDate() + (i * 7));
         } else if (data.recurrencePeriod === "monthly") {
-          recurringDate.setMonth(baseDate.getMonth() + i);
+          recurringDate = addMonthsUTC(baseDate, i);
         } else if (data.recurrencePeriod === "yearly") {
           recurringDate.setFullYear(baseDate.getFullYear() + i);
         }

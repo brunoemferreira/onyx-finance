@@ -12,6 +12,7 @@ import {
 import { uploadReceipt } from "@/app/actions/upload";
 import { getBankAccounts } from "@/app/actions/accounts";
 import { getCategories } from "@/app/actions/categories";
+import { addMonthsUTC } from "@/lib/utils";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { CalculatorPopover } from "@/components/calculator-popover";
@@ -569,8 +570,7 @@ export default function TransactionsPage() {
     const [y, m, d] = date.split("-").map(Number);
     const list = [];
     for (let i = 1; i <= count; i++) {
-      const pDate = new Date(Date.UTC(y, m - 1, d));
-      pDate.setUTCMonth(pDate.getUTCMonth() + (i - 1));
+      const pDate = addMonthsUTC(new Date(Date.UTC(y, m - 1, d)), i - 1);
       
       const day = String(pDate.getUTCDate()).padStart(2, '0');
       const month = String(pDate.getUTCMonth() + 1).padStart(2, '0');
