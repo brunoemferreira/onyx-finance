@@ -12,6 +12,7 @@ import {
 import { uploadReceipt } from "@/app/actions/upload";
 import { getBankAccounts } from "@/app/actions/accounts";
 import { getCategories } from "@/app/actions/categories";
+import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -582,7 +583,7 @@ export default function TransactionsPage() {
     if (!file) return;
 
     if (file.size > 3 * 1024 * 1024) {
-      alert("O arquivo deve ser inferior a 3 MB.");
+      toast.error("O arquivo deve ser inferior a 3 MB.");
       return;
     }
 
@@ -595,10 +596,11 @@ export default function TransactionsPage() {
       if (res?.success) {
         setReceiptUrl(res.url);
         setUploadedFileName(res.fileName);
+        toast.success("Comprovante enviado com sucesso!");
       }
     } catch (err) {
       console.error(err);
-      alert("Falha ao subir comprovante.");
+      toast.error("Falha ao subir comprovante.");
     } finally {
       setIsUploading(false);
     }

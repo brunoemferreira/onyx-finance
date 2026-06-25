@@ -76,9 +76,22 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     signIn: "/login",
   },
   callbacks: {
-    session({ session, token }) {
+    async session({ session, token }) {
       if (session.user && token.sub) {
         session.user.id = token.sub;
+        try {
+          const [dbUser] = await db
+            .select()
+            .from(users)
+            .where(eq(users.id, token.sub))
+            .limit(1);
+          if (dbUser) {
+            session.user.name = dbUser.name;
+            session.user.image = dbUser.image;
+          }
+        } catch (err) {
+          console.error("Erro no callback de sessao ao buscar usuario:", err);
+        }
       }
       return session;
     },
