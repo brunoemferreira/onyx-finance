@@ -732,11 +732,11 @@ export default function TransactionsPage() {
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
   const metrics = filteredTransactions.reduce((acc, tx) => {
     const amount = parseFloat(tx.amount);
-    const txDate = new Date(tx.date);
-    const isPast = txDate < today;
+    const isPast = getUTCDateStr(tx.date) < todayStr;
 
     // Total Geral
     if (tx.type === "income") {
@@ -1109,8 +1109,7 @@ export default function TransactionsPage() {
 
                   // Status badge calculations
                   const isCleared = tx.isCleared;
-                  const txDate = new Date(tx.date);
-                  const isPast = txDate < today;
+                  const isPast = getUTCDateStr(tx.date) < todayStr;
 
                   let statusText = "";
                   let badgeClass = "";
