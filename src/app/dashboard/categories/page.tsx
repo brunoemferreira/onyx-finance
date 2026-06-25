@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CleanSelect } from "@/components/ui/clean-select";
 import { 
   Plus, 
   Trash2, 
@@ -479,49 +480,42 @@ export default function CategoriesPage() {
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Supermercado, Aluguel, Cinema..." required />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-4">
               <div>
                 <label className="text-xs font-semibold text-zinc-500 block mb-1">Categoria Pai (Opcional)</label>
-                <Select value={parentId} onValueChange={(v) => {
-                  const val = v || "none";
-                  setParentId(val);
-                  if (val !== "none") {
-                    const parent = categoriesList.find(c => c.id === val);
-                    if (parent) {
-                      setType(parent.type);
-                      setColor(parent.color);
+                <CleanSelect 
+                  value={parentId} 
+                  onValueChange={(val) => {
+                    const v = val || "none";
+                    setParentId(v);
+                    if (v !== "none") {
+                      const parent = categoriesList.find(c => c.id === v);
+                      if (parent) {
+                        setType(parent.type);
+                        setColor(parent.color);
+                      }
                     }
-                  }
-                }}>
-                  <SelectTrigger className="!w-full h-8 text-xs">
-                    <SelectValue>
-                      {parentId === "none" ? "Nenhuma (Categoria Principal)" : parentCategories.find(c => c.id === parentId)?.name}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none" className="text-xs font-semibold">Nenhuma (Categoria Principal)</SelectItem>
-                    {parentCategories.map(p => (
-                      <SelectItem key={p.id} value={p.id} className="text-xs">{p.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  }}
+                  options={[
+                    { value: "none", label: "Nenhuma (Categoria Principal)" },
+                    ...parentCategories.map(p => ({ value: p.id, label: p.name }))
+                  ]}
+                  placeholder="Selecione"
+                />
               </div>
 
               <div>
                 <label className="text-xs font-semibold text-zinc-500 block mb-1">Tipo</label>
-                <Select 
+                <CleanSelect 
                   value={type} 
                   onValueChange={(v: any) => setType(v)}
                   disabled={parentId !== "none"}
-                >
-                  <SelectTrigger className="!w-full h-8 text-xs">
-                    <SelectValue>{type === 'expense' ? 'Despesa' : 'Receita'}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="expense" className="text-xs">Despesa</SelectItem>
-                    <SelectItem value="income" className="text-xs">Receita</SelectItem>
-                  </SelectContent>
-                </Select>
+                  options={[
+                    { value: "expense", label: "Despesa" },
+                    { value: "income", label: "Receita" }
+                  ]}
+                  placeholder="Tipo"
+                />
               </div>
             </div>
 
@@ -608,50 +602,42 @@ export default function CategoriesPage() {
               <Input value={name} onChange={(e) => setName(e.target.value)} required />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-4">
               <div>
                 <label className="text-xs font-semibold text-zinc-500 block mb-1">Categoria Pai (Opcional)</label>
-                <Select value={parentId} onValueChange={(v) => {
-                  const val = v || "none";
-                  setParentId(val);
-                  if (val !== "none") {
-                    const parent = categoriesList.find(c => c.id === val);
-                    if (parent) {
-                      setType(parent.type);
-                      setColor(parent.color);
+                <CleanSelect 
+                  value={parentId} 
+                  onValueChange={(val) => {
+                    const v = val || "none";
+                    setParentId(v);
+                    if (v !== "none") {
+                      const parent = categoriesList.find(c => c.id === v);
+                      if (parent) {
+                        setType(parent.type);
+                        setColor(parent.color);
+                      }
                     }
-                  }
-                }}>
-                  <SelectTrigger className="!w-full h-8 text-xs">
-                    <SelectValue>
-                      {parentId === "none" ? "Nenhuma (Categoria Principal)" : parentCategories.find(c => c.id === parentId)?.name}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none" className="text-xs font-semibold">Nenhuma (Categoria Principal)</SelectItem>
-                    {/* Evitar que a própria categoria seja selecionada como pai */}
-                    {parentCategories.filter(p => p.id !== activeCategory?.id).map(p => (
-                      <SelectItem key={p.id} value={p.id} className="text-xs">{p.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  }}
+                  options={[
+                    { value: "none", label: "Nenhuma (Categoria Principal)" },
+                    ...parentCategories.filter(p => p.id !== activeCategory?.id).map(p => ({ value: p.id, label: p.name }))
+                  ]}
+                  placeholder="Selecione"
+                />
               </div>
 
               <div>
                 <label className="text-xs font-semibold text-zinc-500 block mb-1">Tipo</label>
-                <Select 
+                <CleanSelect 
                   value={type} 
                   onValueChange={(v: any) => setType(v)}
                   disabled={parentId !== "none"}
-                >
-                  <SelectTrigger className="!w-full h-8 text-xs">
-                    <SelectValue>{type === 'expense' ? 'Despesa' : 'Receita'}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="expense" className="text-xs">Despesa</SelectItem>
-                    <SelectItem value="income" className="text-xs">Receita</SelectItem>
-                  </SelectContent>
-                </Select>
+                  options={[
+                    { value: "expense", label: "Despesa" },
+                    { value: "income", label: "Receita" }
+                  ]}
+                  placeholder="Tipo"
+                />
               </div>
             </div>
 

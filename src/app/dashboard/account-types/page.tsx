@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CleanSelect } from "@/components/ui/clean-select";
 import { toast } from "sonner";
 import { 
   Plus, 
@@ -277,20 +278,18 @@ export default function AccountTypesPage() {
 
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-450 uppercase tracking-wider">Comportamento Base</label>
-                <Select value={type} onValueChange={(val: any) => setType(val)}>
-                  <SelectTrigger className="!w-full rounded-xl border-zinc-250 dark:border-zinc-850 bg-zinc-50/50 dark:bg-zinc-900/30">
-                    <SelectValue placeholder="Selecione um comportamento">
-                      {typeTranslations[type]}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-900 rounded-xl">
-                    <SelectItem value="checking">Conta Corrente (Saldos / Transações padrão)</SelectItem>
-                    <SelectItem value="savings">Poupança (Reserva financeira)</SelectItem>
-                    <SelectItem value="credit_card">Cartão de Crédito (Limite / Faturas / Vencimento)</SelectItem>
-                    <SelectItem value="investment">Investimento (Saldos vinculados a ativos)</SelectItem>
-                    <SelectItem value="cash">Dinheiro em Espécie (Carteira física)</SelectItem>
-                  </SelectContent>
-                </Select>
+                <CleanSelect 
+                  value={type} 
+                  onValueChange={(val: any) => setType(val)}
+                  options={[
+                    { value: "checking", label: "Conta Corrente (Saldos / Transações padrão)" },
+                    { value: "savings", label: "Poupança (Reserva financeira)" },
+                    { value: "credit_card", label: "Cartão de Crédito (Limite / Faturas / Vencimento)" },
+                    { value: "investment", label: "Investimento (Saldos vinculados a ativos)" },
+                    { value: "cash", label: "Dinheiro em Espécie (Carteira física)" }
+                  ]}
+                  placeholder="Selecione um comportamento"
+                />
               </div>
 
               <div className="space-y-2">
@@ -371,20 +370,18 @@ export default function AccountTypesPage() {
 
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-450 uppercase tracking-wider">Comportamento Base</label>
-                <Select value={type} onValueChange={(val: any) => setType(val)}>
-                  <SelectTrigger className="!w-full rounded-xl border-zinc-250 dark:border-zinc-850 bg-zinc-50/50 dark:bg-zinc-900/30">
-                    <SelectValue placeholder="Selecione um comportamento">
-                      {typeTranslations[type]}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-900 rounded-xl">
-                    <SelectItem value="checking">Conta Corrente (Saldos / Transações padrão)</SelectItem>
-                    <SelectItem value="savings">Poupança (Reserva financeira)</SelectItem>
-                    <SelectItem value="credit_card">Cartão de Crédito (Limite / Faturas / Vencimento)</SelectItem>
-                    <SelectItem value="investment">Investimento (Saldos vinculados a ativos)</SelectItem>
-                    <SelectItem value="cash">Dinheiro em Espécie (Carteira física)</SelectItem>
-                  </SelectContent>
-                </Select>
+                <CleanSelect 
+                  value={type} 
+                  onValueChange={(val: any) => setType(val)}
+                  options={[
+                    { value: "checking", label: "Conta Corrente (Saldos / Transações padrão)" },
+                    { value: "savings", label: "Poupança (Reserva financeira)" },
+                    { value: "credit_card", label: "Cartão de Crédito (Limite / Faturas / Vencimento)" },
+                    { value: "investment", label: "Investimento (Saldos vinculados a ativos)" },
+                    { value: "cash", label: "Dinheiro em Espécie (Carteira física)" }
+                  ]}
+                  placeholder="Selecione um comportamento"
+                />
               </div>
 
               <div className="space-y-2">

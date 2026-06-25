@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { CalculatorPopover } from "@/components/calculator-popover";
 import { Button } from "@/components/ui/button";
+import { CleanSelect } from "@/components/ui/clean-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -421,6 +422,9 @@ export default function TransactionsPage() {
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurrencePeriod, setRecurrencePeriod] = useState<"none" | "weekly" | "monthly" | "yearly">("monthly");
 
+  const [editMode, setEditMode] = useState<"single" | "future" | "all">("single");
+  const [deleteMode, setDeleteMode] = useState<"single" | "future" | "all">("single");
+
   const loadData = async () => {
     try {
       const [txs, accs, cats] = await Promise.all([
@@ -484,11 +488,13 @@ export default function TransactionsPage() {
     setNotes(tx.notes || "");
     setReceiptUrl(tx.receiptUrl || "");
     setUploadedFileName(tx.receiptUrl ? tx.receiptUrl.split("/").pop() || "" : "");
+    setEditMode("single");
     setIsEditOpen(true);
   };
 
   const openDeleteDialog = (tx: Transaction) => {
     setActiveTx(tx);
+    setDeleteMode("single");
     setIsDeleteOpen(true);
   };
 
@@ -536,6 +542,7 @@ export default function TransactionsPage() {
         paymentMethod: paymentMethod || undefined,
         notes: notes || undefined,
         receiptUrl: receiptUrl || undefined,
+        editMode,
       });
       setIsEditOpen(false);
       loadData();
@@ -544,10 +551,10 @@ export default function TransactionsPage() {
     }
   };
 
-  const handleDeleteConfirm = async (deleteAllSeries: boolean) => {
+  const handleDeleteConfirm = async () => {
     if (!activeTx) return;
     try {
-      await deleteTransaction(activeTx.id, deleteAllSeries);
+      await deleteTransaction(activeTx.id, deleteMode);
       setIsDeleteOpen(false);
       loadData();
     } catch (err) {
@@ -897,75 +904,59 @@ export default function TransactionsPage() {
           </div>
 
           {/* Filtro Tipo */}
-          <Select value={filterType} onValueChange={(val) => val && setFilterType(val)}>
-            <SelectTrigger className="h-9 text-xs rounded-xl border-zinc-200 dark:border-zinc-800 focus:ring-1 focus:ring-zinc-400 bg-white dark:bg-zinc-950 w-40 shrink-0">
-              <div className="flex items-center gap-1.5 text-left truncate">
-                <span className="text-zinc-400 dark:text-zinc-550 font-medium">Tipo:</span>
-                <SelectValue>
-                  {filterType === "all" ? "Todos" : filterType === "expense" ? "Despesas" : filterType === "income" ? "Receitas" : "Transferências"}
-                </SelectValue>
-              </div>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all" className="text-xs">Todos</SelectItem>
-              <SelectItem value="expense" className="text-xs">Despesas</SelectItem>
-              <SelectItem value="income" className="text-xs">Receitas</SelectItem>
-              <SelectItem value="transfer" className="text-xs">Transferências</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="w-40 shrink-0">
+            <CleanSelect 
+              value={filterType} 
+              onValueChange={(val) => val && setFilterType(val)}
+              options={[
+                { value: "all", label: "Todos" },
+                { value: "expense", label: "Despesas" },
+                { value: "income", label: "Receitas" },
+                { value: "transfer", label: "Transferências" }
+              ]}
+              prefix="Tipo:"
+            />
+          </div>
 
           {/* Filtro Conta */}
-          <Select value={filterAccount} onValueChange={(val) => val && setFilterAccount(val)}>
-            <SelectTrigger className="h-9 text-xs rounded-xl border-zinc-200 dark:border-zinc-800 focus:ring-1 focus:ring-zinc-400 bg-white dark:bg-zinc-950 w-44 shrink-0">
-              <div className="flex items-center gap-1.5 text-left truncate">
-                <span className="text-zinc-400 dark:text-zinc-550 font-medium">Conta:</span>
-                <SelectValue>
-                  {filterAccount === "all" ? "Todas" : accounts.find(a => a.id === filterAccount)?.name || ""}
-                </SelectValue>
-              </div>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all" className="text-xs">Todas</SelectItem>
-              {accounts.map((acc) => (
-                <SelectItem key={acc.id} value={acc.id} className="text-xs">{acc.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="w-44 shrink-0">
+            <CleanSelect 
+              value={filterAccount} 
+              onValueChange={(val) => val && setFilterAccount(val)}
+              options={[
+                { value: "all", label: "Todas" },
+                ...accounts.map(acc => ({ value: acc.id, label: acc.name }))
+              ]}
+              prefix="Conta:"
+            />
+          </div>
 
           {/* Filtro Categoria */}
-          <Select value={filterCategory} onValueChange={(val) => val && setFilterCategory(val)}>
-            <SelectTrigger className="h-9 text-xs rounded-xl border-zinc-200 dark:border-zinc-800 focus:ring-1 focus:ring-zinc-400 bg-white dark:bg-zinc-950 w-44 shrink-0">
-              <div className="flex items-center gap-1.5 text-left truncate">
-                <span className="text-zinc-400 dark:text-zinc-550 font-medium">Categoria:</span>
-                <SelectValue>
-                  {filterCategory === "all" ? "Todas" : categories.find(c => c.id === filterCategory)?.name || ""}
-                </SelectValue>
-              </div>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all" className="text-xs">Todas</SelectItem>
-              {categories.map((cat) => (
-                <SelectItem key={cat.id} value={cat.id} className="text-xs">{cat.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="w-44 shrink-0">
+            <CleanSelect 
+              value={filterCategory} 
+              onValueChange={(val) => val && setFilterCategory(val)}
+              options={[
+                { value: "all", label: "Todas" },
+                ...categories.map(cat => ({ value: cat.id, label: cat.name }))
+              ]}
+              prefix="Categoria:"
+            />
+          </div>
 
           {/* Filtro Status */}
-          <Select value={filterStatus} onValueChange={(val) => val && setFilterStatus(val)}>
-            <SelectTrigger className="h-9 text-xs rounded-xl border-zinc-200 dark:border-zinc-800 focus:ring-1 focus:ring-zinc-400 bg-white dark:bg-zinc-950 w-40 shrink-0">
-              <div className="flex items-center gap-1.5 text-left truncate">
-                <span className="text-zinc-400 dark:text-zinc-550 font-medium">Status:</span>
-                <SelectValue>
-                  {filterStatus === "all" ? "Todos" : filterStatus === "cleared" ? "Liquidado" : "Pendente"}
-                </SelectValue>
-              </div>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all" className="text-xs">Todos</SelectItem>
-              <SelectItem value="cleared" className="text-xs">Liquidado</SelectItem>
-              <SelectItem value="pending" className="text-xs">Pendente</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="w-40 shrink-0">
+            <CleanSelect 
+              value={filterStatus} 
+              onValueChange={(val) => val && setFilterStatus(val)}
+              options={[
+                { value: "all", label: "Todos" },
+                { value: "cleared", label: "Liquidado" },
+                { value: "pending", label: "Pendente" }
+              ]}
+              prefix="Status:"
+            />
+          </div>
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 border-t border-zinc-100 dark:border-zinc-900">
@@ -1412,8 +1403,8 @@ export default function TransactionsPage() {
             <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
               
               {/* Seção 1: Informações do Lançamento */}
-              <div className="border border-zinc-200 dark:border-zinc-900 rounded-xl overflow-hidden bg-white dark:bg-zinc-950/20">
-                <div className="bg-zinc-50/70 dark:bg-zinc-900/50 px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-900 flex items-center justify-between">
+              <div className="border border-zinc-200 dark:border-zinc-900 rounded-xl bg-white dark:bg-zinc-950/20">
+                <div className="bg-zinc-50/70 dark:bg-zinc-900/50 px-4 py-2.5 rounded-t-xl border-b border-zinc-200 dark:border-zinc-900 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Info className="h-4 w-4 text-[#0B4F83] dark:text-[#218FDE]" />
                     <span className="font-bold text-xs uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
@@ -1462,16 +1453,12 @@ export default function TransactionsPage() {
                         {type === "transfer" ? "Conta Origem*" : "Conta / Cartão*"}
                       </label>
                       {accounts.length > 0 && (
-                        <Select value={accountId} onValueChange={(val) => val && setAccountId(val)}>
-                          <SelectTrigger className="!w-full h-9 text-xs">
-                            <SelectValue>{accounts.find(a => a.id === accountId)?.name}</SelectValue>
-                          </SelectTrigger>
-                          <SelectContent>
-                            {accounts.map((acc) => (
-                              <SelectItem key={acc.id} value={acc.id} className="text-xs">{acc.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <CleanSelect 
+                          value={accountId} 
+                          onValueChange={(val) => val && setAccountId(val)}
+                          options={accounts.map(acc => ({ value: acc.id, label: acc.name, color: acc.color }))}
+                          placeholder="Selecione uma conta"
+                        />
                       )}
                     </div>
                     <div>
@@ -1499,90 +1486,65 @@ export default function TransactionsPage() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Tipo de Lançamento*</label>
-                      <Select value={type} onValueChange={(v: any) => {
-                        setType(v);
-                        const firstCat = categories.filter(c => c.type === v)[0]?.id || "";
-                        setCategoryId(firstCat);
-                      }}>
-                        <SelectTrigger className="!w-full h-9 text-xs">
-                          <SelectValue>{type === 'expense' ? 'Despesa' : type === 'income' ? 'Receita' : type === 'transfer' ? 'Transferência' : ''}</SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="expense" className="text-xs">Despesa</SelectItem>
-                          <SelectItem value="income" className="text-xs">Receita</SelectItem>
-                          <SelectItem value="transfer" className="text-xs">Transferência</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <CleanSelect 
+                        value={type} 
+                        onValueChange={(v: any) => {
+                          setType(v);
+                          const firstCat = categories.filter(c => c.type === v)[0]?.id || "";
+                          setCategoryId(firstCat);
+                        }}
+                        options={[
+                          { value: "expense", label: "Despesa" },
+                          { value: "income", label: "Receita" },
+                          { value: "transfer", label: "Transferência" }
+                        ]}
+                        placeholder="Tipo"
+                      />
                     </div>
                     <div>
                       {type === "transfer" ? (
                         <>
                           <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Conta Destino*</label>
                           {accounts.length > 0 && (
-                            <Select value={toAccountId} onValueChange={(val) => val && setToAccountId(val)}>
-                              <SelectTrigger className="!w-full h-9 text-xs">
-                                <SelectValue>{accounts.find(a => a.id === toAccountId)?.name}</SelectValue>
-                              </SelectTrigger>
-                              <SelectContent>
-                                {accounts.filter(a => a.id !== accountId).map((acc) => (
-                                  <SelectItem key={acc.id} value={acc.id} className="text-xs">{acc.name}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <CleanSelect 
+                              value={toAccountId} 
+                              onValueChange={(val) => val && setToAccountId(val)}
+                              options={accounts.filter(a => a.id !== accountId).map(acc => ({ value: acc.id, label: acc.name, color: acc.color }))}
+                              placeholder="Conta de Destino"
+                            />
                           )}
                         </>
                       ) : (
                         <>
                           <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Categoria</label>
                           {categories.length > 0 && (
-                            <Select value={categoryId} onValueChange={(val) => val && setCategoryId(val)}>
-                              <SelectTrigger className="!w-full h-9 text-xs">
-                                <SelectValue>
-                                  {(() => {
-                                    const cat = categories.find(c => c.id === categoryId);
-                                    const CatIcon = getCategoryIcon(cat?.icon || "tag");
-                                    return (
-                                      <div className="flex items-center gap-1.5">
-                                        <CatIcon className="h-3.5 w-3.5 text-zinc-500" />
-                                        <span>{getCategoryNameFormatted(cat)}</span>
-                                      </div>
-                                    );
-                                  })()}
-                                </SelectValue>
-                              </SelectTrigger>
-                              <SelectContent>
-                                {getSortedSelectCategories(type).map((cat) => {
-                                  const CatIcon = getCategoryIcon(cat.icon);
-                                  const isSub = !!cat.parentId;
-                                  return (
-                                    <SelectItem key={cat.id} value={cat.id} className="text-xs">
-                                      <div className="flex items-center gap-1.5">
-                                        <CatIcon className="h-3.5 w-3.5 text-zinc-500" />
-                                        <span className={isSub ? "pl-2 font-normal text-zinc-650 dark:text-zinc-400" : "font-bold text-zinc-900 dark:text-zinc-100"}>
-                                          {isSub ? `↳ ${cat.name}` : cat.name}
-                                        </span>
-                                      </div>
-                                    </SelectItem>
-                                  );
-                                })}
-                              </SelectContent>
-                            </Select>
+                            <CleanSelect 
+                              value={categoryId} 
+                              onValueChange={(val) => val && setCategoryId(val)}
+                              options={getSortedSelectCategories(type).map(cat => {
+                                const isSub = !!cat.parentId;
+                                return {
+                                  value: cat.id,
+                                  label: isSub ? `↳ ${cat.name}` : cat.name,
+                                  icon: getCategoryIcon(cat.icon),
+                                  color: cat.color
+                                };
+                              })}
+                              placeholder="Selecione uma categoria"
+                              searchable={true}
+                            />
                           )}
                         </>
                       )}
                     </div>
                     <div>
                       <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Forma de Pagamento</label>
-                      <Select value={paymentMethod} onValueChange={(val) => val && setPaymentMethod(val)}>
-                        <SelectTrigger className="!w-full h-9 text-xs">
-                          <SelectValue>{paymentMethod}</SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          {["Boleto", "Pix", "Cartão de Crédito", "Cartão de Débito", "Dinheiro", "Transferência"].map((method) => (
-                            <SelectItem key={method} value={method} className="text-xs">{method}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <CleanSelect 
+                        value={paymentMethod} 
+                        onValueChange={(val) => val && setPaymentMethod(val)}
+                        options={["Boleto", "Pix", "Cartão de Crédito", "Cartão de Débito", "Dinheiro", "Transferência"].map(method => ({ value: method, label: method }))}
+                        placeholder="Selecione"
+                      />
                     </div>
                   </div>
 
@@ -1604,8 +1566,8 @@ export default function TransactionsPage() {
 
               {/* Seção 2: Parcelamento */}
               {type !== "transfer" && (
-                <div className="border border-zinc-200 dark:border-zinc-900 rounded-xl overflow-hidden bg-white dark:bg-zinc-950/20">
-                  <div className="bg-zinc-50/70 dark:bg-zinc-900/50 px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-900 flex items-center justify-between">
+                <div className="border border-zinc-200 dark:border-zinc-900 rounded-xl bg-white dark:bg-zinc-950/20">
+                  <div className="bg-zinc-50/70 dark:bg-zinc-900/50 px-4 py-2.5 rounded-t-xl border-b border-zinc-200 dark:border-zinc-900 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <RefreshCw className="h-4 w-4 text-[#0B4F83] dark:text-[#218FDE]" />
                       <span className="font-bold text-xs uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
@@ -1618,30 +1580,26 @@ export default function TransactionsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Tipo</label>
-                        <Select 
-                          value={isInstallment ? "installment" : isRecurring ? "recurring" : "single"}
-                          onValueChange={(val) => {
-                            if (val === "single") {
+                        <CleanSelect 
+                          value={isInstallment ? "installment" : isRecurring ? "recurring" : "single"} 
+                          onValueChange={(v) => {
+                            if (v === "single") {
                               setIsInstallment(false);
                               setIsRecurring(false);
-                            } else if (val === "installment") {
+                            } else if (v === "installment") {
                               setIsInstallment(true);
                               setIsRecurring(false);
-                            } else if (val === "recurring") {
-                              setIsInstallment(false);
+                            } else if (v === "recurring") {
                               setIsRecurring(true);
+                              setIsInstallment(false);
                             }
                           }}
-                        >
-                          <SelectTrigger className="!w-full h-9 text-xs">
-                            <SelectValue>{isInstallment ? "Parcelado" : isRecurring ? "Recorrente Fixo" : "Lançamento Único"}</SelectValue>
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="single" className="text-xs">Lançamento Único</SelectItem>
-                            {type === "expense" && <SelectItem value="installment" className="text-xs">Parcelado</SelectItem>}
-                            <SelectItem value="recurring" className="text-xs">Recorrente Fixo</SelectItem>
-                          </SelectContent>
-                        </Select>
+                          options={[
+                            { value: "single", label: "Lançamento Único" },
+                            ...(type === "expense" ? [{ value: "installment", label: "Parcelado" }] : []),
+                            { value: "recurring", label: "Recorrente Fixo" }
+                          ]}
+                        />
                       </div>
 
                       <div>
@@ -1661,16 +1619,15 @@ export default function TransactionsPage() {
                         {isRecurring && (
                           <>
                             <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Frequência/Período</label>
-                            <Select value={recurrencePeriod} onValueChange={(v: any) => setRecurrencePeriod(v)}>
-                              <SelectTrigger className="!w-full h-9 text-xs">
-                                <SelectValue>{recurrencePeriod === "weekly" ? "Semanal" : recurrencePeriod === "monthly" ? "Mensal" : recurrencePeriod === "yearly" ? "Anual" : ""}</SelectValue>
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="weekly" className="text-xs">Semanal</SelectItem>
-                                <SelectItem value="monthly" className="text-xs">Mensal</SelectItem>
-                                <SelectItem value="yearly" className="text-xs">Anual</SelectItem>
-                              </SelectContent>
-                            </Select>
+                            <CleanSelect 
+                              value={recurrencePeriod} 
+                              onValueChange={(v: any) => setRecurrencePeriod(v)}
+                              options={[
+                                { value: "weekly", label: "Semanal" },
+                                { value: "monthly", label: "Mensal" },
+                                { value: "yearly", label: "Anual" }
+                              ]}
+                            />
                           </>
                         )}
                       </div>
@@ -1709,8 +1666,8 @@ export default function TransactionsPage() {
               )}
 
               {/* Seção 3: Informações Adicionais */}
-              <div className="border border-zinc-200 dark:border-zinc-900 rounded-xl overflow-hidden bg-white dark:bg-zinc-950/20">
-                <div className="bg-zinc-50/70 dark:bg-zinc-900/50 px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-900 flex items-center justify-between">
+              <div className="border border-zinc-200 dark:border-zinc-900 rounded-xl bg-white dark:bg-zinc-950/20">
+                <div className="bg-zinc-50/70 dark:bg-zinc-900/50 px-4 py-2.5 rounded-t-xl border-b border-zinc-200 dark:border-zinc-900 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <FileText className="h-4 w-4 text-[#0B4F83] dark:text-[#218FDE]" />
                     <span className="font-bold text-xs uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
@@ -1837,9 +1794,30 @@ export default function TransactionsPage() {
           <form onSubmit={handleEditSubmit} className="space-y-6">
             <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
               
+              {activeTx?.parentId && activeTx?.isInstallment && (
+                <div className="bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/50 rounded-xl p-4 mb-2">
+                  <label className="text-sm font-semibold text-[#0B4F83] dark:text-[#218FDE] block mb-3">
+                    Esta transação é parcelada. Como deseja editar?
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    <label className="flex items-center gap-2 cursor-pointer p-2.5 rounded-lg border border-blue-200/50 dark:border-blue-800/30 bg-white/50 dark:bg-zinc-950/50 hover:bg-white dark:hover:bg-zinc-900 transition-colors">
+                      <input type="radio" name="editMode" value="single" checked={editMode === "single"} onChange={() => setEditMode("single")} className="text-[#0B4F83]" />
+                      <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Apenas esta parcela</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer p-2.5 rounded-lg border border-blue-200/50 dark:border-blue-800/30 bg-white/50 dark:bg-zinc-950/50 hover:bg-white dark:hover:bg-zinc-900 transition-colors">
+                      <input type="radio" name="editMode" value="future" checked={editMode === "future"} onChange={() => setEditMode("future")} className="text-[#0B4F83]" />
+                      <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Esta e as futuras</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer p-2.5 rounded-lg border border-blue-200/50 dark:border-blue-800/30 bg-white/50 dark:bg-zinc-950/50 hover:bg-white dark:hover:bg-zinc-900 transition-colors">
+                      <input type="radio" name="editMode" value="all" checked={editMode === "all"} onChange={() => setEditMode("all")} className="text-[#0B4F83]" />
+                      <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Todas as parcelas</span>
+                    </label>
+                  </div>
+                </div>
+              )}
               {/* Seção 1: Informações do Lançamento */}
-              <div className="border border-zinc-200 dark:border-zinc-900 rounded-xl overflow-hidden bg-white dark:bg-zinc-950/20">
-                <div className="bg-zinc-50/70 dark:bg-zinc-900/50 px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-900 flex items-center justify-between">
+              <div className="border border-zinc-200 dark:border-zinc-900 rounded-xl bg-white dark:bg-zinc-950/20">
+                <div className="bg-zinc-50/70 dark:bg-zinc-900/50 px-4 py-2.5 rounded-t-xl border-b border-zinc-200 dark:border-zinc-900 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Info className="h-4 w-4 text-[#0B4F83] dark:text-[#218FDE]" />
                     <span className="font-bold text-xs uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
@@ -1888,16 +1866,12 @@ export default function TransactionsPage() {
                         {type === "transfer" ? "Conta Origem*" : "Conta / Cartão*"}
                       </label>
                       {accounts.length > 0 && (
-                        <Select value={accountId} onValueChange={(val) => val && setAccountId(val)}>
-                          <SelectTrigger className="!w-full h-9 text-xs">
-                            <SelectValue>{accounts.find(a => a.id === accountId)?.name}</SelectValue>
-                          </SelectTrigger>
-                          <SelectContent>
-                            {accounts.map((acc) => (
-                              <SelectItem key={acc.id} value={acc.id} className="text-xs">{acc.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <CleanSelect 
+                          value={accountId} 
+                          onValueChange={(val) => val && setAccountId(val)}
+                          options={accounts.map(acc => ({ value: acc.id, label: acc.name, color: acc.color }))}
+                          placeholder="Selecione uma conta"
+                        />
                       )}
                     </div>
                     <div>
@@ -1925,98 +1899,73 @@ export default function TransactionsPage() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Tipo de Lançamento*</label>
-                      <Select value={type} onValueChange={(v: any) => {
-                        setType(v);
-                        const firstCat = categories.filter(c => c.type === v)[0]?.id || "";
-                        setCategoryId(firstCat);
-                      }}>
-                        <SelectTrigger className="!w-full h-9 text-xs">
-                          <SelectValue>{type === 'expense' ? 'Despesa' : type === 'income' ? 'Receita' : type === 'transfer' ? 'Transferência' : ''}</SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="expense" className="text-xs">Despesa</SelectItem>
-                          <SelectItem value="income" className="text-xs">Receita</SelectItem>
-                          <SelectItem value="transfer" className="text-xs">Transferência</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <CleanSelect 
+                        value={type} 
+                        onValueChange={(v: any) => {
+                          setType(v);
+                          const firstCat = categories.filter(c => c.type === v)[0]?.id || "";
+                          setCategoryId(firstCat);
+                        }}
+                        options={[
+                          { value: "expense", label: "Despesa" },
+                          { value: "income", label: "Receita" },
+                          { value: "transfer", label: "Transferência" }
+                        ]}
+                        placeholder="Tipo"
+                      />
                     </div>
                     <div>
                       {type === "transfer" ? (
                         <>
                           <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Conta Destino*</label>
                           {accounts.length > 0 && (
-                            <Select value={toAccountId} onValueChange={(val) => val && setToAccountId(val)}>
-                              <SelectTrigger className="!w-full h-9 text-xs">
-                                <SelectValue>{accounts.find(a => a.id === toAccountId)?.name}</SelectValue>
-                              </SelectTrigger>
-                              <SelectContent>
-                                {accounts.filter(a => a.id !== accountId).map((acc) => (
-                                  <SelectItem key={acc.id} value={acc.id} className="text-xs">{acc.name}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <CleanSelect 
+                              value={toAccountId} 
+                              onValueChange={(val) => val && setToAccountId(val)}
+                              options={accounts.filter(a => a.id !== accountId).map(acc => ({ value: acc.id, label: acc.name, color: acc.color }))}
+                              placeholder="Conta de Destino"
+                            />
                           )}
                         </>
                       ) : (
                         <>
                           <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Categoria</label>
                           {categories.length > 0 && (
-                            <Select value={categoryId} onValueChange={(val) => val && setCategoryId(val)}>
-                              <SelectTrigger className="!w-full h-9 text-xs">
-                                <SelectValue>
-                                  {(() => {
-                                    const cat = categories.find(c => c.id === categoryId);
-                                    const CatIcon = getCategoryIcon(cat?.icon || "tag");
-                                    return (
-                                      <div className="flex items-center gap-1.5">
-                                        <CatIcon className="h-3.5 w-3.5 text-zinc-500" />
-                                        <span>{getCategoryNameFormatted(cat)}</span>
-                                      </div>
-                                    );
-                                  })()}
-                                </SelectValue>
-                              </SelectTrigger>
-                              <SelectContent>
-                                {getSortedSelectCategories(type).map((cat) => {
-                                  const CatIcon = getCategoryIcon(cat.icon);
-                                  const isSub = !!cat.parentId;
-                                  return (
-                                    <SelectItem key={cat.id} value={cat.id} className="text-xs">
-                                      <div className="flex items-center gap-1.5">
-                                        <CatIcon className="h-3.5 w-3.5 text-zinc-500" />
-                                        <span className={isSub ? "pl-2 font-normal text-zinc-650 dark:text-zinc-400" : "font-bold text-zinc-900 dark:text-zinc-100"}>
-                                          {isSub ? `↳ ${cat.name}` : cat.name}
-                                        </span>
-                                      </div>
-                                    </SelectItem>
-                                  );
-                                })}
-                              </SelectContent>
-                            </Select>
+                            <CleanSelect 
+                              value={categoryId} 
+                              onValueChange={(val) => val && setCategoryId(val)}
+                              options={getSortedSelectCategories(type).map(cat => {
+                                const isSub = !!cat.parentId;
+                                return {
+                                  value: cat.id,
+                                  label: isSub ? `↳ ${cat.name}` : cat.name,
+                                  icon: getCategoryIcon(cat.icon),
+                                  color: cat.color
+                                };
+                              })}
+                              placeholder="Selecione uma categoria"
+                              searchable={true}
+                            />
                           )}
                         </>
                       )}
                     </div>
                     <div>
                       <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Forma de Pagamento</label>
-                      <Select value={paymentMethod} onValueChange={(val) => val && setPaymentMethod(val)}>
-                        <SelectTrigger className="!w-full h-9 text-xs">
-                          <SelectValue>{paymentMethod}</SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          {["Boleto", "Pix", "Cartão de Crédito", "Cartão de Débito", "Dinheiro", "Transferência"].map((method) => (
-                            <SelectItem key={method} value={method} className="text-xs">{method}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <CleanSelect 
+                        value={paymentMethod} 
+                        onValueChange={(val) => val && setPaymentMethod(val)}
+                        options={["Boleto", "Pix", "Cartão de Crédito", "Cartão de Débito", "Dinheiro", "Transferência"].map(method => ({ value: method, label: method }))}
+                        placeholder="Selecione"
+                      />
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Seção 3: Informações Adicionais */}
-              <div className="border border-zinc-200 dark:border-zinc-900 rounded-xl overflow-hidden bg-white dark:bg-zinc-950/20">
-                <div className="bg-zinc-50/70 dark:bg-zinc-900/50 px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-900 flex items-center justify-between">
+              <div className="border border-zinc-200 dark:border-zinc-900 rounded-xl bg-white dark:bg-zinc-950/20">
+                <div className="bg-zinc-50/70 dark:bg-zinc-900/50 px-4 py-2.5 rounded-t-xl border-b border-zinc-200 dark:border-zinc-900 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <FileText className="h-4 w-4 text-[#0B4F83] dark:text-[#218FDE]" />
                     <span className="font-bold text-xs uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
@@ -2130,16 +2079,48 @@ export default function TransactionsPage() {
         </DialogContent>
       </Dialog>
 
-      <ConfirmDialog
-        open={isDeleteOpen}
-        setOpen={setIsDeleteOpen}
-        title="Confirmar Exclusão"
-        description={`Tem certeza de que deseja excluir o lançamento "${activeTx?.description}"?${activeTx?.parentId ? '\nAviso: Esta transação faz parte de um parcelamento ou recorrência.' : ''}`}
-        onConfirm={async () => {
-          // Simple deletion of single transaction
-          await handleDeleteConfirm(false);
-        }}
-      />
+      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <DialogContent className="border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-red-600">Confirmar Exclusão</DialogTitle>
+            <DialogDescription>
+              Tem certeza de que deseja excluir o lançamento "{activeTx?.description}"?
+            </DialogDescription>
+          </DialogHeader>
+          
+          {activeTx?.parentId && activeTx?.isInstallment && (
+            <div className="py-4 space-y-3 border-y border-zinc-100 dark:border-zinc-900 my-2">
+              <label className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Esta transação é parcelada. Como deseja excluir?</label>
+              
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
+                  <input type="radio" name="deleteMode" value="single" checked={deleteMode === "single"} onChange={() => setDeleteMode("single")} className="text-[#0B4F83]" />
+                  <span className="text-sm">Somente esta parcela</span>
+                </label>
+                
+                <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
+                  <input type="radio" name="deleteMode" value="future" checked={deleteMode === "future"} onChange={() => setDeleteMode("future")} className="text-[#0B4F83]" />
+                  <span className="text-sm">Esta parcela e as futuras</span>
+                </label>
+                
+                <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
+                  <input type="radio" name="deleteMode" value="all" checked={deleteMode === "all"} onChange={() => setDeleteMode("all")} className="text-[#0B4F83]" />
+                  <span className="text-sm">Todas as parcelas da compra</span>
+                </label>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-3 mt-4">
+            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>
+              Excluir
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

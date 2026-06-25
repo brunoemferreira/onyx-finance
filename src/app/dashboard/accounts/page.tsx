@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CleanSelect } from "@/components/ui/clean-select";
 import { Plus, Trash2, Pencil, Check, Wallet, CreditCard as CreditCardIcon, Landmark, PiggyBank } from "lucide-react";
 import BankLogo, { getBankDetails } from "@/components/BankLogo";
 import BankSelector from "@/components/BankSelector";
@@ -459,20 +460,12 @@ export default function AccountsPage() {
           {/* Tipo de Conta */}
           <div>
             <label className="text-xs font-semibold text-zinc-500 block mb-1.5">Tipo de Conta</label>
-            <Select value={accountTypeId} onValueChange={(v) => v && setAccountTypeId(v)}>
-              <SelectTrigger className="!w-full h-10 text-xs">
-                <SelectValue placeholder="Selecione o tipo de conta">
-                  {accountTypesList.find(t => t.id === accountTypeId)?.name}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-900 rounded-xl">
-                {accountTypesList.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <CleanSelect 
+              value={accountTypeId} 
+              onValueChange={(v) => v && setAccountTypeId(v)}
+              options={accountTypesList.map(t => ({ value: t.id, label: t.name }))}
+              placeholder="Selecione o tipo de conta"
+            />
           </div>
 
           {/* Seção Condicional de Campos e Saldo */}
@@ -613,20 +606,12 @@ export default function AccountsPage() {
           {/* Tipo de Conta */}
           <div>
             <label className="text-xs font-semibold text-zinc-500 block mb-1.5">Tipo de Conta</label>
-            <Select value={editAccountTypeId} onValueChange={(v) => v && setEditAccountTypeId(v)}>
-              <SelectTrigger className="!w-full h-10 text-xs">
-                <SelectValue placeholder="Selecione o tipo de conta">
-                  {accountTypesList.find(t => t.id === editAccountTypeId)?.name}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-900 rounded-xl">
-                {accountTypesList.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <CleanSelect 
+              value={editAccountTypeId} 
+              onValueChange={(v) => v && setEditAccountTypeId(v)}
+              options={accountTypesList.map(t => ({ value: t.id, label: t.name }))}
+              placeholder="Selecione o tipo de conta"
+            />
           </div>
 
           {/* Seção Condicional de Campos e Saldo */}

@@ -220,6 +220,7 @@ export async function updateTransaction(
     paymentMethod?: string;
     notes?: string;
     receiptUrl?: string;
+    editMode?: "single" | "future" | "all";
   }
 ) {
   const userId = await getUserId();
@@ -237,53 +238,90 @@ export async function updateTransaction(
       .limit(1);
 
     if (!oldTx) throw new Error("Lançamento não encontrado.");
-    const oldAmount = parseFloat(oldTx.amount);
 
-    // Reverte saldo antigo
-    if (oldTx.isCleared) {
-      if (oldTx.type === "transfer" && oldTx.toAccountId) {
-        await updateAccountBalance(oldTx.accountId, oldAmount);
-        await updateAccountBalance(oldTx.toAccountId, -oldAmount);
-      } else {
-        const factor = oldTx.type === "income" ? -1 : 1;
-        await updateAccountBalance(oldTx.accountId, oldAmount * factor);
+    let targetTxs = [oldTx];
+
+    // Se houver parentId e o modo não for single, buscamos as outras parcelas
+    if (oldTx.parentId && data.editMode && data.editMode !== "single") {
+      const allSeries = await db
+        .select()
+        .from(transactions)
+        .where(and(eq(transactions.parentId, oldTx.parentId), eq(transactions.userId, userId)));
+      
+      if (data.editMode === "future") {
+        targetTxs = allSeries.filter(t => t.currentInstallment && oldTx.currentInstallment && t.currentInstallment >= oldTx.currentInstallment);
+      } else if (data.editMode === "all") {
+        targetTxs = allSeries;
       }
     }
 
-    // 2. Executa a atualização
-    const [updatedTx] = await db
-      .update(transactions)
-      .set({
-        description: data.description,
-        amount: data.amount,
-        type: data.type,
-        date: baseDate,
-        accountId: data.accountId,
-        categoryId: data.type === "transfer" ? null : data.categoryId || null,
-        toAccountId: data.type === "transfer" ? data.toAccountId : null,
-        documentNumber: data.documentNumber || null,
-        paymentMethod: data.paymentMethod || null,
-        notes: data.notes || null,
-        receiptUrl: data.receiptUrl || null,
-      })
-      .where(and(eq(transactions.id, id), eq(transactions.userId, userId)))
-      .returning();
+    // Processar cada transação alvo
+    for (const tx of targetTxs) {
+      const txOldAmount = parseFloat(tx.amount);
 
-    // 3. Aplica o novo saldo
-    if (updatedTx.isCleared) {
-      if (data.type === "transfer" && data.toAccountId) {
-        await updateAccountBalance(data.accountId, -numAmount);
-        await updateAccountBalance(data.toAccountId, numAmount);
-      } else {
-        const factor = data.type === "income" ? 1 : -1;
-        await updateAccountBalance(data.accountId, numAmount * factor);
+      // Reverte saldo antigo
+      if (tx.isCleared) {
+        if (tx.type === "transfer" && tx.toAccountId) {
+          await updateAccountBalance(tx.accountId, txOldAmount);
+          await updateAccountBalance(tx.toAccountId, -txOldAmount);
+        } else {
+          const factor = tx.type === "income" ? -1 : 1;
+          await updateAccountBalance(tx.accountId, txOldAmount * factor);
+        }
+      }
+
+      // Calcula a nova data preservando o mês da parcela original
+      const txDate = new Date(tx.date);
+      // Mantemos o ano e mês originais, e atualizamos o dia pelo novo dia escolhido (cuidando para não ultrapassar o último dia do mês)
+      const txYear = txDate.getUTCFullYear();
+      const txMonth = txDate.getUTCMonth();
+      // Encontrar o último dia do mês original para evitar overflow
+      const lastDayOfMonth = new Date(Date.UTC(txYear, txMonth + 1, 0)).getUTCDate();
+      const newDay = Math.min(d, lastDayOfMonth);
+      const newTxDate = new Date(Date.UTC(txYear, txMonth, newDay));
+
+      // 2. Executa a atualização
+      await db
+        .update(transactions)
+        .set({
+          description: data.description,
+          amount: data.amount,
+          type: data.type,
+          date: newTxDate,
+          accountId: data.accountId,
+          categoryId: data.type === "transfer" ? null : data.categoryId || null,
+          toAccountId: data.type === "transfer" ? data.toAccountId : null,
+          documentNumber: data.documentNumber || null,
+          paymentMethod: data.paymentMethod || null,
+          notes: data.notes || null,
+          receiptUrl: data.receiptUrl || null,
+        })
+        .where(and(eq(transactions.id, tx.id), eq(transactions.userId, userId)));
+
+      // 3. Aplica o novo saldo
+      if (tx.isCleared) {
+        if (data.type === "transfer" && data.toAccountId) {
+          await updateAccountBalance(data.accountId, -numAmount);
+          await updateAccountBalance(data.toAccountId, numAmount);
+        } else {
+          const factor = data.type === "income" ? 1 : -1;
+          await updateAccountBalance(data.accountId, numAmount * factor);
+        }
       }
     }
 
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/transactions");
     revalidatePath("/dashboard/accounts");
-    return updatedTx;
+    
+    // Retorna a transação original atualizada
+    const [updatedOriginal] = await db
+      .select()
+      .from(transactions)
+      .where(and(eq(transactions.id, id), eq(transactions.userId, userId)))
+      .limit(1);
+
+    return updatedOriginal;
   } catch (error) {
     console.error("Erro ao atualizar transação:", error);
     throw new Error("Não foi possível atualizar o lançamento.");
@@ -291,10 +329,10 @@ export async function updateTransaction(
 }
 
 // 4. Excluir Transação
-export async function deleteTransaction(id: string, deleteAllSeries = false) {
+export async function deleteTransaction(id: string, deleteMode: "single" | "future" | "all" | boolean = false) {
   const userId = await getUserId();
   try {
-    // Busca a transação antes de excluir para reverter o saldo
+    // Busca a transação antes de excluir
     const [tx] = await db
       .select()
       .from(transactions)
@@ -303,35 +341,41 @@ export async function deleteTransaction(id: string, deleteAllSeries = false) {
 
     if (!tx) throw new Error("Transação não encontrada.");
 
-    const numAmount = parseFloat(tx.amount);
+    let targetTxs = [tx];
+    
+    // Converte deleteMode antigo (boolean) para a nova API
+    const mode = typeof deleteMode === "boolean" ? (deleteMode ? "all" : "single") : deleteMode;
 
-    if (deleteAllSeries && tx.parentId) {
-      // Exclui a série inteira
-      await db
-        .delete(transactions)
+    if (tx.parentId && mode !== "single") {
+      const allSeries = await db
+        .select()
+        .from(transactions)
         .where(and(eq(transactions.parentId, tx.parentId), eq(transactions.userId, userId)));
       
-      // Reverte apenas a parcela atual
-      if (tx.isCleared) {
-        const factor = tx.type === "income" ? -1 : 1;
-        await updateAccountBalance(tx.accountId, numAmount * factor);
+      if (mode === "future") {
+        targetTxs = allSeries.filter(t => t.currentInstallment && tx.currentInstallment && t.currentInstallment >= tx.currentInstallment);
+      } else if (mode === "all") {
+        targetTxs = allSeries;
       }
-    } else {
-      // Exclui apenas a transação individual
-      await db
-        .delete(transactions)
-        .where(and(eq(transactions.id, id), eq(transactions.userId, userId)));
+    }
 
-      // Reverte o saldo
-      if (tx.isCleared) {
-        if (tx.type === "transfer" && tx.toAccountId) {
-          await updateAccountBalance(tx.accountId, numAmount);
-          await updateAccountBalance(tx.toAccountId, -numAmount);
+    // Reverte saldo de TODAS as transações a serem deletadas
+    for (const t of targetTxs) {
+      if (t.isCleared) {
+        const numAmount = parseFloat(t.amount);
+        if (t.type === "transfer" && t.toAccountId) {
+          await updateAccountBalance(t.accountId, numAmount);
+          await updateAccountBalance(t.toAccountId, -numAmount);
         } else {
-          const factor = tx.type === "income" ? -1 : 1;
-          await updateAccountBalance(tx.accountId, numAmount * factor);
+          const factor = t.type === "income" ? -1 : 1;
+          await updateAccountBalance(t.accountId, numAmount * factor);
         }
       }
+      
+      // Deleta do DB
+      await db
+        .delete(transactions)
+        .where(and(eq(transactions.id, t.id), eq(transactions.userId, userId)));
     }
 
     revalidatePath("/dashboard");
