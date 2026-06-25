@@ -427,7 +427,12 @@ export default function TransactionsPage() {
         getCategories()
       ]);
       setTransactionsList(txs as any);
-      setAccounts(accs as Account[]);
+      setAccounts(
+        (accs as any[]).map((a) => ({
+          ...a,
+          type: a.accountType?.type || "checking"
+        })) as Account[]
+      );
       setCategories(cats as Category[]);
     } catch (err) {
       console.error(err);
@@ -1457,7 +1462,7 @@ export default function TransactionsPage() {
                       </label>
                       {accounts.length > 0 && (
                         <Select value={accountId} onValueChange={(val) => val && setAccountId(val)}>
-                          <SelectTrigger className="w-full h-9 text-xs">
+                          <SelectTrigger className="!w-full h-9 text-xs">
                             <SelectValue>{accounts.find(a => a.id === accountId)?.name}</SelectValue>
                           </SelectTrigger>
                           <SelectContent>
@@ -1500,7 +1505,7 @@ export default function TransactionsPage() {
                         const firstCat = categories.filter(c => c.type === v)[0]?.id || "";
                         setCategoryId(firstCat);
                       }}>
-                        <SelectTrigger className="w-full h-9 text-xs">
+                        <SelectTrigger className="!w-full h-9 text-xs">
                           <SelectValue>{type === 'expense' ? 'Despesa' : type === 'income' ? 'Receita' : type === 'transfer' ? 'Transferência' : ''}</SelectValue>
                         </SelectTrigger>
                         <SelectContent>
@@ -1516,7 +1521,7 @@ export default function TransactionsPage() {
                           <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Conta Destino*</label>
                           {accounts.length > 0 && (
                             <Select value={toAccountId} onValueChange={(val) => val && setToAccountId(val)}>
-                              <SelectTrigger className="w-full h-9 text-xs">
+                              <SelectTrigger className="!w-full h-9 text-xs">
                                 <SelectValue>{accounts.find(a => a.id === toAccountId)?.name}</SelectValue>
                               </SelectTrigger>
                               <SelectContent>
@@ -1532,7 +1537,7 @@ export default function TransactionsPage() {
                           <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Categoria</label>
                           {categories.length > 0 && (
                             <Select value={categoryId} onValueChange={(val) => val && setCategoryId(val)}>
-                              <SelectTrigger className="w-full h-9 text-xs">
+                              <SelectTrigger className="!w-full h-9 text-xs">
                                 <SelectValue>
                                   {(() => {
                                     const cat = categories.find(c => c.id === categoryId);
@@ -1570,7 +1575,7 @@ export default function TransactionsPage() {
                     <div>
                       <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Forma de Pagamento</label>
                       <Select value={paymentMethod} onValueChange={(val) => val && setPaymentMethod(val)}>
-                        <SelectTrigger className="w-full h-9 text-xs">
+                        <SelectTrigger className="!w-full h-9 text-xs">
                           <SelectValue>{paymentMethod}</SelectValue>
                         </SelectTrigger>
                         <SelectContent>
@@ -1629,7 +1634,7 @@ export default function TransactionsPage() {
                             }
                           }}
                         >
-                          <SelectTrigger className="w-full h-9 text-xs">
+                          <SelectTrigger className="!w-full h-9 text-xs">
                             <SelectValue>{isInstallment ? "Parcelado" : isRecurring ? "Recorrente Fixo" : "Lançamento Único"}</SelectValue>
                           </SelectTrigger>
                           <SelectContent>
@@ -1658,7 +1663,7 @@ export default function TransactionsPage() {
                           <>
                             <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Frequência/Período</label>
                             <Select value={recurrencePeriod} onValueChange={(v: any) => setRecurrencePeriod(v)}>
-                              <SelectTrigger className="w-full h-9 text-xs">
+                              <SelectTrigger className="!w-full h-9 text-xs">
                                 <SelectValue>{recurrencePeriod === "weekly" ? "Semanal" : recurrencePeriod === "monthly" ? "Mensal" : recurrencePeriod === "yearly" ? "Anual" : ""}</SelectValue>
                               </SelectTrigger>
                               <SelectContent>
@@ -1885,7 +1890,7 @@ export default function TransactionsPage() {
                       </label>
                       {accounts.length > 0 && (
                         <Select value={accountId} onValueChange={(val) => val && setAccountId(val)}>
-                          <SelectTrigger className="w-full h-9 text-xs">
+                          <SelectTrigger className="!w-full h-9 text-xs">
                             <SelectValue>{accounts.find(a => a.id === accountId)?.name}</SelectValue>
                           </SelectTrigger>
                           <SelectContent>
@@ -1928,7 +1933,7 @@ export default function TransactionsPage() {
                         const firstCat = categories.filter(c => c.type === v)[0]?.id || "";
                         setCategoryId(firstCat);
                       }}>
-                        <SelectTrigger className="w-full h-9 text-xs">
+                        <SelectTrigger className="!w-full h-9 text-xs">
                           <SelectValue>{type === 'expense' ? 'Despesa' : type === 'income' ? 'Receita' : type === 'transfer' ? 'Transferência' : ''}</SelectValue>
                         </SelectTrigger>
                         <SelectContent>
@@ -1944,7 +1949,7 @@ export default function TransactionsPage() {
                           <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Conta Destino*</label>
                           {accounts.length > 0 && (
                             <Select value={toAccountId} onValueChange={(val) => val && setToAccountId(val)}>
-                              <SelectTrigger className="w-full h-9 text-xs">
+                              <SelectTrigger className="!w-full h-9 text-xs">
                                 <SelectValue>{accounts.find(a => a.id === toAccountId)?.name}</SelectValue>
                               </SelectTrigger>
                               <SelectContent>
@@ -1960,7 +1965,7 @@ export default function TransactionsPage() {
                           <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Categoria</label>
                           {categories.length > 0 && (
                             <Select value={categoryId} onValueChange={(val) => val && setCategoryId(val)}>
-                              <SelectTrigger className="w-full h-9 text-xs">
+                              <SelectTrigger className="!w-full h-9 text-xs">
                                 <SelectValue>
                                   {(() => {
                                     const cat = categories.find(c => c.id === categoryId);
@@ -1998,7 +2003,7 @@ export default function TransactionsPage() {
                     <div>
                       <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Forma de Pagamento</label>
                       <Select value={paymentMethod} onValueChange={(val) => val && setPaymentMethod(val)}>
-                        <SelectTrigger className="w-full h-9 text-xs">
+                        <SelectTrigger className="!w-full h-9 text-xs">
                           <SelectValue>{paymentMethod}</SelectValue>
                         </SelectTrigger>
                         <SelectContent>

@@ -2,7 +2,7 @@
 
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { bankAccounts, users } from "@/db/schema";
+import { bankAccounts, accountTypes } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
@@ -15,11 +15,56 @@ export async function getUserId() {
   throw new Error("Não autenticado.");
 }
 
-// 1. Listar contas e cartões do usuário
+// 1. Listar contas e cartões do usuário com o Tipo de Conta associado
 export async function getBankAccounts() {
   const userId = await getUserId();
   try {
-    return await db.select().from(bankAccounts).where(eq(bankAccounts.userId, userId));
+    const results = await db
+      .select({
+        id: bankAccounts.id,
+        name: bankAccounts.name,
+        initialBalance: bankAccounts.initialBalance,
+        creditLimit: bankAccounts.creditLimit,
+        closingDay: bankAccounts.closingDay,
+        dueDay: bankAccounts.dueDay,
+        institution: bankAccounts.institution,
+        agency: bankAccounts.agency,
+        accountNumber: bankAccounts.accountNumber,
+        accountDigit: bankAccounts.accountDigit,
+        color: bankAccounts.color,
+        userId: bankAccounts.userId,
+        accountTypeId: bankAccounts.accountTypeId,
+        createdAt: bankAccounts.createdAt,
+      })
+      .from(bankAccounts)
+      .where(eq(bankAccounts.userId, userId));
+
+    // Fetch the account types for these accounts
+    const userTypes = await db
+      .select()
+      .from(accountTypes)
+      .where(eq(accountTypes.userId, userId));
+
+    // Map them together
+    return results.map(acc => {
+      const typeInfo = userTypes.find(t => t.id === acc.accountTypeId);
+      return {
+        ...acc,
+        accountType: typeInfo ? {
+          id: typeInfo.id,
+          name: typeInfo.name,
+          type: typeInfo.type,
+          icon: typeInfo.icon,
+          color: typeInfo.color,
+        } : {
+          id: acc.accountTypeId,
+          name: "Desconhecido",
+          type: "checking" as const,
+          icon: "landmark",
+          color: "#71717a",
+        }
+      };
+    });
   } catch (error) {
     console.error("Erro ao obter contas bancárias:", error);
     throw new Error("Não foi possível listar as contas.");
@@ -29,7 +74,7 @@ export async function getBankAccounts() {
 // 2. Criar nova conta ou cartão
 export async function createBankAccount(data: {
   name: string;
-  type: "checking" | "savings" | "credit_card" | "investment" | "cash";
+  accountTypeId: string;
   initialBalance: string;
   creditLimit?: string;
   closingDay?: number;
@@ -42,18 +87,31 @@ export async function createBankAccount(data: {
 }) {
   const userId = await getUserId();
   try {
+    // Buscar o tipo de conta para validações e regras
+    const [accType] = await db
+      .select()
+      .from(accountTypes)
+      .where(and(eq(accountTypes.id, data.accountTypeId), eq(accountTypes.userId, userId)));
+
+    if (!accType) {
+      throw new Error("Tipo de conta inválido ou não pertencente ao usuário.");
+    }
+
+    const isCreditCard = accType.type === "credit_card";
+    const isBankLike = ["checking", "savings", "investment"].includes(accType.type);
+
     const [newAccount] = await db.insert(bankAccounts).values({
       name: data.name,
-      type: data.type,
       initialBalance: data.initialBalance,
-      creditLimit: data.type === "credit_card" ? data.creditLimit : null,
-      closingDay: data.type === "credit_card" ? data.closingDay : null,
-      dueDay: data.type === "credit_card" ? data.dueDay : null,
+      creditLimit: isCreditCard ? data.creditLimit : null,
+      closingDay: isCreditCard ? data.closingDay : null,
+      dueDay: isCreditCard ? data.dueDay : null,
       institution: data.institution || "generic",
-      agency: data.agency || null,
-      accountNumber: data.accountNumber || null,
-      accountDigit: data.accountDigit || null,
+      agency: isBankLike ? (data.agency || null) : null,
+      accountNumber: isBankLike ? (data.accountNumber || null) : null,
+      accountDigit: isBankLike ? (data.accountDigit || null) : null,
       color: data.color || "#27272a",
+      accountTypeId: data.accountTypeId,
       userId: userId,
     }).returning();
 
@@ -62,7 +120,7 @@ export async function createBankAccount(data: {
     return newAccount;
   } catch (error) {
     console.error("Erro ao criar conta bancária:", error);
-    throw new Error("Não foi possível criar a conta.");
+    throw new Error(error instanceof Error ? error.message : "Não foi possível criar a conta.");
   }
 }
 
@@ -71,7 +129,7 @@ export async function updateBankAccount(
   id: string,
   data: {
     name: string;
-    type: "checking" | "savings" | "credit_card" | "investment" | "cash";
+    accountTypeId: string;
     initialBalance: string;
     creditLimit?: string;
     closingDay?: number;
@@ -85,20 +143,33 @@ export async function updateBankAccount(
 ) {
   const userId = await getUserId();
   try {
+    // Buscar o tipo de conta para validações e regras
+    const [accType] = await db
+      .select()
+      .from(accountTypes)
+      .where(and(eq(accountTypes.id, data.accountTypeId), eq(accountTypes.userId, userId)));
+
+    if (!accType) {
+      throw new Error("Tipo de conta inválido ou não pertencente ao usuário.");
+    }
+
+    const isCreditCard = accType.type === "credit_card";
+    const isBankLike = ["checking", "savings", "investment"].includes(accType.type);
+
     const [updated] = await db
       .update(bankAccounts)
       .set({
         name: data.name,
-        type: data.type,
         initialBalance: data.initialBalance,
-        creditLimit: data.type === "credit_card" ? data.creditLimit : null,
-        closingDay: data.type === "credit_card" ? data.closingDay : null,
-        dueDay: data.type === "credit_card" ? data.dueDay : null,
+        creditLimit: isCreditCard ? data.creditLimit : null,
+        closingDay: isCreditCard ? data.closingDay : null,
+        dueDay: isCreditCard ? data.dueDay : null,
         institution: data.institution || "generic",
-        agency: data.agency || null,
-        accountNumber: data.accountNumber || null,
-        accountDigit: data.accountDigit || null,
+        agency: isBankLike ? (data.agency || null) : null,
+        accountNumber: isBankLike ? (data.accountNumber || null) : null,
+        accountDigit: isBankLike ? (data.accountDigit || null) : null,
         color: data.color || "#27272a",
+        accountTypeId: data.accountTypeId,
       })
       .where(and(eq(bankAccounts.id, id), eq(bankAccounts.userId, userId)))
       .returning();
@@ -108,7 +179,7 @@ export async function updateBankAccount(
     return updated;
   } catch (error) {
     console.error("Erro ao atualizar conta bancária:", error);
-    throw new Error("Não foi possível atualizar a conta.");
+    throw new Error(error instanceof Error ? error.message : "Não foi possível atualizar a conta.");
   }
 }
 

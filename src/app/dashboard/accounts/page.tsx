@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getBankAccounts, createBankAccount, deleteBankAccount, updateBankAccount } from "@/app/actions/accounts";
+import { getAccountTypes } from "@/app/actions/account-types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
@@ -12,11 +13,19 @@ import { Plus, Trash2, Pencil, Check, Wallet, CreditCard as CreditCardIcon, Land
 import BankLogo, { getBankDetails } from "@/components/BankLogo";
 import BankSelector from "@/components/BankSelector";
 import { listarBancos, obterPreset } from "@/lib/bancos-brasil/core.js";
+import { toast } from "sonner";
 
 type BankAccount = {
   id: string;
   name: string;
-  type: "checking" | "savings" | "credit_card" | "investment" | "cash";
+  accountTypeId: string;
+  accountType: {
+    id: string;
+    name: string;
+    type: "checking" | "savings" | "credit_card" | "investment" | "cash";
+    icon: string;
+    color: string;
+  };
   initialBalance: string;
   creditLimit: string | null;
   closingDay: number | null;
@@ -108,12 +117,14 @@ const parseCurrencyToFloat = (formatted: string) => {
 
 export default function AccountsPage() {
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
+  const [accountTypesList, setAccountTypesList] = useState<any[]>([]);
+  const [defaultTypeId, setDefaultTypeId] = useState("");
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // Form states (Create)
   const [name, setName] = useState("");
-  const [type, setType] = useState<"checking" | "savings" | "credit_card" | "investment" | "cash">("checking");
+  const [accountTypeId, setAccountTypeId] = useState("");
   const [initialBalance, setInitialBalance] = useState("R$ 0,00");
   const [creditLimit, setCreditLimit] = useState("R$ 1.000,00");
   const [closingDay, setClosingDay] = useState("5");
@@ -128,7 +139,7 @@ export default function AccountsPage() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [activeAccount, setActiveAccount] = useState<BankAccount | null>(null);
   const [editName, setEditName] = useState("");
-  const [editType, setEditType] = useState<"checking" | "savings" | "credit_card" | "investment" | "cash">("checking");
+  const [editAccountTypeId, setEditAccountTypeId] = useState("");
   const [editInitialBalance, setEditInitialBalance] = useState("R$ 0,00");
   const [editCreditLimit, setEditCreditLimit] = useState("R$ 1.000,00");
   const [editClosingDay, setEditClosingDay] = useState("5");
@@ -139,6 +150,13 @@ export default function AccountsPage() {
   const [editAccountDigit, setEditAccountDigit] = useState("");
   const [editColor, setEditColor] = useState("#71717a");
 
+  // Derived types
+  const selectedTypeInfo = accountTypesList.find(t => t.id === accountTypeId);
+  const type = selectedTypeInfo ? selectedTypeInfo.type : "checking";
+
+  const editSelectedTypeInfo = accountTypesList.find(t => t.id === editAccountTypeId);
+  const editType = editSelectedTypeInfo ? editSelectedTypeInfo.type : "checking";
+
   // Confirmation dialog state
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [confirmTitle, setConfirmTitle] = useState('');
@@ -147,7 +165,7 @@ export default function AccountsPage() {
 
   const openCreateDialog = () => {
     setName("");
-    setType("checking");
+    setAccountTypeId(defaultTypeId);
     setInitialBalance("R$ 0,00");
     setCreditLimit("R$ 1.000,00");
     setClosingDay("5");
@@ -163,7 +181,7 @@ export default function AccountsPage() {
   const openEditDialog = (account: BankAccount) => {
     setActiveAccount(account);
     setEditName(account.name);
-    setEditType(account.type);
+    setEditAccountTypeId(account.accountTypeId);
     
     const balNum = parseFloat(account.initialBalance || "0");
     setEditInitialBalance(new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(balNum));
@@ -190,7 +208,7 @@ export default function AccountsPage() {
       
       await updateBankAccount(activeAccount.id, {
         name: editName,
-        type: editType,
+        accountTypeId: editAccountTypeId,
         initialBalance: balFloat.toFixed(2),
         creditLimit: editType === "credit_card" ? limFloat.toFixed(2) : undefined,
         closingDay: editType === "credit_card" ? parseInt(editClosingDay) : undefined,
@@ -202,9 +220,11 @@ export default function AccountsPage() {
         color: editColor,
       });
       setIsEditOpen(false);
+      toast.success("Conta atualizada com sucesso!");
       loadAccounts();
     } catch (err) {
       console.error(err);
+      toast.error("Erro ao atualizar conta.");
     }
   };
 
@@ -217,10 +237,16 @@ export default function AccountsPage() {
 
   const loadAccounts = async () => {
     try {
-      const data = await getBankAccounts();
+      const [data, types] = await Promise.all([getBankAccounts(), getAccountTypes()]);
       setAccounts(data as BankAccount[]);
+      setAccountTypesList(types);
+      if (types.length > 0) {
+        const checking = types.find(t => t.type === "checking") || types[0];
+        setDefaultTypeId(checking.id);
+      }
     } catch (err) {
       console.error(err);
+      toast.error("Não foi possível carregar as contas.");
     } finally {
       setLoading(false);
     }
@@ -238,7 +264,7 @@ export default function AccountsPage() {
 
       await createBankAccount({
         name,
-        type,
+        accountTypeId,
         initialBalance: balFloat.toFixed(2),
         creditLimit: type === "credit_card" ? limFloat.toFixed(2) : undefined,
         closingDay: type === "credit_card" ? parseInt(closingDay) : undefined,
@@ -250,9 +276,11 @@ export default function AccountsPage() {
         color,
       });
       setIsDialogOpen(false);
+      toast.success("Conta cadastrada com sucesso!");
       loadAccounts();
     } catch (err) {
       console.error(err);
+      toast.error("Erro ao cadastrar conta.");
     }
   };
 
@@ -261,21 +289,16 @@ export default function AccountsPage() {
       'Confirmar Exclusão',
       'Tem certeza que deseja excluir esta conta? Todas as transações vinculadas serão apagadas.',
       async () => {
-        await deleteBankAccount(id);
-        await loadAccounts();
+        try {
+          await deleteBankAccount(id);
+          toast.success("Conta excluída com sucesso!");
+          await loadAccounts();
+        } catch (err) {
+          console.error(err);
+          toast.error("Erro ao excluir conta.");
+        }
       }
     );
-  };
-
-  const translateType = (type: string) => {
-    switch (type) {
-      case "credit_card": return "Cartão de Crédito";
-      case "savings": return "Poupança";
-      case "checking": return "Conta Corrente";
-      case "investment": return "Investimento";
-      case "cash": return "Dinheiro Físico";
-      default: return type;
-    }
   };
 
   const formatBRL = (value: number | string) => {
@@ -330,23 +353,23 @@ export default function AccountsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {accounts.map((account) => {
-            const isCredit = account.type === "credit_card";
+            const isCredit = account.accountType?.type === "credit_card";
             return (
               <Card key={account.id} className="border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950 relative overflow-hidden flex flex-col justify-between">
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <BankLogo institution={account.institution} type={account.type} className="h-8 w-8" />
+                      <BankLogo institution={account.institution} type={account.accountType?.type || "checking"} className="h-8 w-8" />
                       <div className="min-w-0">
                         <CardTitle className="text-sm font-semibold truncate">{account.name}</CardTitle>
-                        <CardDescription className="text-[10px] uppercase tracking-wider font-medium mt-0.5">{translateType(account.type)}</CardDescription>
+                        <CardDescription className="text-[10px] uppercase tracking-wider font-medium mt-0.5">{account.accountType?.name}</CardDescription>
                       </div>
                     </div>
                     <div className="flex items-center gap-0.5">
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 h-8 w-8"
+                        className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 h-8 w-8 cursor-pointer"
                         onClick={() => openEditDialog(account)}
                       >
                         <Pencil className="h-4 w-4" />
@@ -354,7 +377,7 @@ export default function AccountsPage() {
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="text-zinc-400 hover:text-red-500 hover:bg-red-50/20 dark:hover:bg-red-950/20 h-8 w-8"
+                        className="text-zinc-400 hover:text-red-500 hover:bg-red-50/20 dark:hover:bg-red-950/20 h-8 w-8 cursor-pointer"
                         onClick={() => handleDelete(account.id)}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -372,10 +395,10 @@ export default function AccountsPage() {
                       
                       <div className="w-full bg-zinc-100 dark:bg-zinc-900 h-1.5 rounded-full overflow-hidden">
                         <div 
-                          className="bg-zinc-950 dark:bg-zinc-50 h-1.5 rounded-full" 
-                          style={{ 
-                            width: `${Math.min(100, (parseFloat(account.initialBalance) / parseFloat(account.creditLimit || "1")) * 100)}%` 
-                          }} 
+                           className="bg-zinc-950 dark:bg-zinc-50 h-1.5 rounded-full" 
+                           style={{ 
+                             width: `${Math.min(100, (parseFloat(account.initialBalance) / parseFloat(account.creditLimit || "1")) * 100)}%` 
+                           }} 
                         />
                       </div>
                       <div className="flex justify-between text-[9px] text-zinc-500">
@@ -395,7 +418,7 @@ export default function AccountsPage() {
                         <span className="text-xl font-black text-zinc-900 dark:text-zinc-50">{formatBRL(account.initialBalance)}</span>
                       </div>
 
-                      {["checking", "savings", "investment"].includes(account.type) && (account.agency || account.accountNumber) && (
+                      {["checking", "savings", "investment"].includes(account.accountType?.type || "checking") && (account.agency || account.accountNumber) && (
                         <div className="text-[10px] font-semibold text-zinc-500 bg-zinc-50 dark:bg-zinc-900/40 px-2 py-1 rounded border border-zinc-100 dark:border-zinc-900/30 self-start">
                           {account.agency ? `Ag: ${account.agency}` : ""}
                           {account.agency && account.accountNumber ? " • " : ""}
@@ -421,7 +444,7 @@ export default function AccountsPage() {
           <DialogDescription>Preencha os dados abaixo para cadastrar uma nova conta ou cartão.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleCreate} className="space-y-4 pt-2">
-          {/* Campo Instituição em Linha Única - Modificado para h-16 e Logos h-9 */}
+          {/* Campo Instituição em Linha Única */}
           <div>
             <label className="text-xs font-semibold text-zinc-500 block mb-1.5">Instituição Financeira</label>
             <BankSelector value={institution} onValueChange={(v) => handleInstitutionChange(v, false)} type={type} />
@@ -436,21 +459,23 @@ export default function AccountsPage() {
           {/* Tipo de Conta */}
           <div>
             <label className="text-xs font-semibold text-zinc-500 block mb-1.5">Tipo de Conta</label>
-            <Select value={type} onValueChange={(v) => v && setType(v as any)}>
-              <SelectTrigger className="w-full h-10 text-xs">
-                <SelectValue>{translateType(type)}</SelectValue>
+            <Select value={accountTypeId} onValueChange={(v) => v && setAccountTypeId(v)}>
+              <SelectTrigger className="!w-full h-10 text-xs">
+                <SelectValue placeholder="Selecione o tipo de conta">
+                  {accountTypesList.find(t => t.id === accountTypeId)?.name}
+                </SelectValue>
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="checking">Conta Corrente</SelectItem>
-                <SelectItem value="savings">Poupança</SelectItem>
-                <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
-                <SelectItem value="investment">Investimento</SelectItem>
-                <SelectItem value="cash">Dinheiro Físico</SelectItem>
+              <SelectContent className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-900 rounded-xl">
+                {accountTypesList.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Seção Condicional de Campos e Saldo (Saldo posicionado abaixo do dígito, alinhado à direita) */}
+          {/* Seção Condicional de Campos e Saldo */}
           {["checking", "savings", "investment"].includes(type) && (
             <div className="grid grid-cols-3 gap-4 pt-3 border-t border-zinc-100 dark:border-zinc-900">
               <div>
@@ -557,7 +582,7 @@ export default function AccountsPage() {
           </div>
 
           <DialogFooter className="pt-2">
-            <Button type="submit" className="w-full h-10 bg-zinc-900 text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-950 dark:hover:bg-zinc-200 font-semibold">
+            <Button type="submit" className="w-full h-10 bg-zinc-900 text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-950 dark:hover:bg-zinc-200 font-semibold cursor-pointer">
               Salvar Conta
             </Button>
           </DialogFooter>
@@ -573,7 +598,7 @@ export default function AccountsPage() {
           <DialogDescription>Modifique as propriedades desta conta ou cartão.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleEditSubmit} className="space-y-4 pt-2">
-          {/* Campo Instituição em Linha Única - Modificado para h-16 e Logos h-9 */}
+          {/* Campo Instituição em Linha Única */}
           <div>
             <label className="text-xs font-semibold text-zinc-500 block mb-1.5">Instituição Financeira</label>
             <BankSelector value={editInstitution} onValueChange={(v) => handleInstitutionChange(v, true)} type={editType} />
@@ -588,21 +613,23 @@ export default function AccountsPage() {
           {/* Tipo de Conta */}
           <div>
             <label className="text-xs font-semibold text-zinc-500 block mb-1.5">Tipo de Conta</label>
-            <Select value={editType} onValueChange={(v) => v && setEditType(v as any)}>
-              <SelectTrigger className="w-full h-10 text-xs">
-                <SelectValue>{translateType(editType)}</SelectValue>
+            <Select value={editAccountTypeId} onValueChange={(v) => v && setEditAccountTypeId(v)}>
+              <SelectTrigger className="!w-full h-10 text-xs">
+                <SelectValue placeholder="Selecione o tipo de conta">
+                  {accountTypesList.find(t => t.id === editAccountTypeId)?.name}
+                </SelectValue>
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="checking">Conta Corrente</SelectItem>
-                <SelectItem value="savings">Poupança</SelectItem>
-                <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
-                <SelectItem value="investment">Investimento</SelectItem>
-                <SelectItem value="cash">Dinheiro Físico</SelectItem>
+              <SelectContent className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-900 rounded-xl">
+                {accountTypesList.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Seção Condicional de Campos e Saldo (Saldo posicionado abaixo do dígito, alinhado à direita) */}
+          {/* Seção Condicional de Campos e Saldo */}
           {["checking", "savings", "investment"].includes(editType) && (
             <div className="grid grid-cols-3 gap-4 pt-3 border-t border-zinc-100 dark:border-zinc-900">
               <div>
@@ -709,7 +736,7 @@ export default function AccountsPage() {
           </div>
 
           <DialogFooter className="pt-2">
-            <Button type="submit" className="w-full h-10 bg-zinc-900 text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-950 dark:hover:bg-zinc-200 font-semibold">
+            <Button type="submit" className="w-full h-10 bg-zinc-900 text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-950 dark:hover:bg-zinc-200 font-semibold cursor-pointer">
               Atualizar Conta
             </Button>
           </DialogFooter>

@@ -25,6 +25,7 @@ const navigationItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Transações", href: "/dashboard/transactions", icon: Receipt },
   { name: "Contas e Cartões", href: "/dashboard/accounts", icon: CreditCard },
+  { name: "Tipos de Conta", href: "/dashboard/account-types", icon: PiggyBank },
   { name: "Categorias", href: "/dashboard/categories", icon: Tag },
 ];
 

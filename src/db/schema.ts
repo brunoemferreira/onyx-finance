@@ -1,7 +1,6 @@
 import { pgTable, uuid, text, timestamp, numeric, pgEnum, boolean, integer, primaryKey } from "drizzle-orm/pg-core";
 
 // Enums para consistência de dados
-export const accountTypeEnum = pgEnum("account_type", ["checking", "savings", "credit_card", "investment", "cash"]);
 export const transactionTypeEnum = pgEnum("transaction_type", ["income", "expense", "transfer"]);
 export const subscriptionStatusEnum = pgEnum("subscription_status", ["active", "trialing", "past_due", "canceled", "incomplete"]);
 export const recurrencePeriodEnum = pgEnum("recurrence_period", ["none", "weekly", "monthly", "yearly"]);
@@ -76,11 +75,20 @@ export const verificationTokens = pgTable(
 // 2. Regras de Negócio e Finanças
 // ==========================================
 
+export const accountTypes = pgTable("custom_account_type", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  type: text("type").default("checking").notNull(),
+  icon: text("icon").default("wallet").notNull(),
+  color: text("color").default("#71717a").notNull(),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Contas Bancárias e Cartões de Crédito (Renomeado para evitar conflito com 'account' do NextAuth)
 export const bankAccounts = pgTable("bank_account", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
-  type: accountTypeEnum("type").default("checking").notNull(),
   initialBalance: numeric("initial_balance", { precision: 12, scale: 2 }).default("0.00").notNull(),
   
   // Específicos para Cartão de Crédito
@@ -96,6 +104,7 @@ export const bankAccounts = pgTable("bank_account", {
   
   color: text("color").default("#27272a").notNull(), // Tons de cinza por padrão (zinc-800)
   userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  accountTypeId: uuid("account_type_id").references(() => accountTypes.id, { onDelete: "restrict" }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

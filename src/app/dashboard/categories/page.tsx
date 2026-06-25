@@ -493,7 +493,7 @@ export default function CategoriesPage() {
                     }
                   }
                 }}>
-                  <SelectTrigger className="w-full h-8 text-xs">
+                  <SelectTrigger className="!w-full h-8 text-xs">
                     <SelectValue>
                       {parentId === "none" ? "Nenhuma (Categoria Principal)" : parentCategories.find(c => c.id === parentId)?.name}
                     </SelectValue>
@@ -514,7 +514,7 @@ export default function CategoriesPage() {
                   onValueChange={(v: any) => setType(v)}
                   disabled={parentId !== "none"}
                 >
-                  <SelectTrigger className="w-full h-8 text-xs">
+                  <SelectTrigger className="!w-full h-8 text-xs">
                     <SelectValue>{type === 'expense' ? 'Despesa' : 'Receita'}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
@@ -622,7 +622,7 @@ export default function CategoriesPage() {
                     }
                   }
                 }}>
-                  <SelectTrigger className="w-full h-8 text-xs">
+                  <SelectTrigger className="!w-full h-8 text-xs">
                     <SelectValue>
                       {parentId === "none" ? "Nenhuma (Categoria Principal)" : parentCategories.find(c => c.id === parentId)?.name}
                     </SelectValue>
@@ -644,7 +644,7 @@ export default function CategoriesPage() {
                   onValueChange={(v: any) => setType(v)}
                   disabled={parentId !== "none"}
                 >
-                  <SelectTrigger className="w-full h-8 text-xs">
+                  <SelectTrigger className="!w-full h-8 text-xs">
                     <SelectValue>{type === 'expense' ? 'Despesa' : 'Receita'}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
