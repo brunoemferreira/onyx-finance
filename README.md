@@ -79,7 +79,33 @@ O projeto utiliza um ecossistema moderno e robusto voltado para alta performance
     GITHUB_CLIENT_SECRET=seu_client_secret_do_github
     GOOGLE_CLIENT_ID=seu_client_id_do_google
     GOOGLE_CLIENT_SECRET=seu_client_secret_do_google
+
+    # Envio de E-mails - SMTP (Opcional - Necessário para Recuperação de Senha em Produção)
+    SMTP_HOST=smtp.exemplo.com
+    SMTP_PORT=587
+    SMTP_USER=seu_usuario_smtp
+    SMTP_PASS=sua_senha_smtp
     ```
+
+### 🔑 Recuperação de Senha (Credentials)
+Para usuários que criam contas locais com E-mail/Senha, o Onyx Finance disponibiliza um fluxo de redefinição de senha:
+1. Na tela de login, o usuário clica em "Esqueceu sua senha?".
+2. Digita seu e-mail e solicita a redefinição.
+3. Se a parametrização SMTP (`SMTP_HOST`, etc.) acima estiver ativa, um e-mail HTML elegante será disparado com o link temporário.
+4. **Em Desenvolvimento / Testes (sem SMTP configurado):** O link de redefinição contendo o token seguro de 1 hora será impresso diretamente no terminal do servidor Next.js. Se estiver utilizando o Docker, basta consultar com `docker compose logs app` para capturar a URL de reset e testar o fluxo instantaneamente.
+
+#### 🐳 Configuração em Servidor Local de Produção com Docker
+Se você executa a aplicação em produção dentro de sua rede local usando Docker, existem duas abordagens de configuração:
+- **Avançada (Disparo Real de E-mails):**
+  Configure no seu arquivo `.env` as variáveis SMTP externas (como Gmail ou SendGrid). 
+  > [!IMPORTANT]
+  > Certifique-se de configurar a variável `NEXTAUTH_URL` apontando para o **IP de rede local do seu servidor de produção** (ex: `NEXTAUTH_URL=http://192.168.15.50:3002`) em vez de `localhost`. Isso garante que quando você abrir o e-mail em outros dispositivos (como celular ou outro computador na rede), o link de recuperação de senha aponte corretamente para o servidor central.
+- **Simplificada / Offline (Uso pessoal):**
+  Se optar por não cadastrar credenciais SMTP para envio de e-mails, o sistema funcionará em modo fallback offline. Para recuperar uma senha, basta digitar o e-mail na tela, acessar o terminal do seu servidor e extrair o link gerado executando:
+  ```bash
+  docker compose logs app
+  ```
+  Copie o link seguro exibido no console, cole no seu navegador e proceda com a alteração de senha.
 
 ### 🔑 Configuração de Autenticação Social
 

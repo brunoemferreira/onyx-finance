@@ -72,3 +72,10 @@ Este documento serve como repositório centralizado de todas as funcionalidades,
 - **Biblioteca de Toasts (`sonner`)**: Implementação global do componente `<Toaster />` no layout raiz, fornecendo notificações animadas e estilizadas para interações do usuário.
 - **Substituição de Alertas Nativos**: Remoção completa de caixas de diálogo síncronas `alert(...)` do navegador, substituindo-as por toasts de sucesso e erro na alteração de foto de perfil, uploads de comprovantes de transações e checkouts de assinatura do Stripe.
 - **Ajuste de Limite de Upload (Server Actions)**: Configuração do Next.js para aceitar payloads de até 4 MB para Server Actions (`experimental.serverActions.bodySizeLimit: "4mb"`), resolvendo a limitação padrão de 1 MB e garantindo que o upload de fotos de perfil e comprovantes de transação ocorra com sucesso mesmo com arquivos grandes.
+
+### 11. Recuperação e Redefinição de Senha Segura (Credentials)
+- **Token Criptográfico Temporário**: Geração de tokens de uso único e temporários (`crypto.randomBytes`) com expiração de 1 hora salvos nas colunas `reset_token` e `reset_token_expires` do banco de dados PostgreSQL.
+- **Proteção contra Enumeração de E-mail**: O fluxo de solicitação de recuperação de senha retorna uma resposta de sucesso genérica no frontend, impedindo que terceiros consigam deduzir quais endereços de e-mail estão cadastrados no sistema.
+- **Ambiente de Testes Otimizado (Console Log)**: Quando as credenciais de SMTP não estão parametrizadas no `.env`, o sistema imprime o link de redefinição contendo o token diretamente nos logs do terminal do Docker, agilizando testes locais e validações rápidas.
+- **Integração SMTP (nodemailer)**: Suporte pronto para disparar e-mails formatados em HTML e texto claro em produção, bastando parametrizar as variáveis SMTP em seu arquivo de variáveis de ambiente.
+- **Interface Segura**: Páginas dedicadas `/forgot-password` e `/reset-password` integradas ao design system escuro e responsivo do Onyx Finance, incluindo validações de senha robustas e notificações via Toast.

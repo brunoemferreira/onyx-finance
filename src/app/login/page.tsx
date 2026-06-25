@@ -4,6 +4,7 @@ import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
+import Link from "next/link";
 
 export default function LoginPage() {
   const { data: session, status } = useSession();
@@ -192,9 +193,19 @@ export default function LoginPage() {
               </div>
 
               <div>
-                <label htmlFor="password" className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
-                  Senha
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label htmlFor="password" className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                    Senha
+                  </label>
+                  {mode === "login" && (
+                    <Link
+                      href="/forgot-password"
+                      className="text-xs font-semibold text-zinc-500 hover:text-zinc-350 transition-colors"
+                    >
+                      Esqueceu sua senha?
+                    </Link>
+                  )}
+                </div>
                 <input
                   id="password"
                   type="password"
