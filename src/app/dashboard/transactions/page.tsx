@@ -14,6 +14,7 @@ import { getBankAccounts } from "@/app/actions/accounts";
 import { getCategories } from "@/app/actions/categories";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
+import { CalculatorPopover } from "@/components/calculator-popover";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -1489,9 +1490,7 @@ export default function TransactionsPage() {
                           className="h-9 text-xs pr-10" 
                           required 
                         />
-                        <div className="absolute right-0 top-0 bottom-0 bg-zinc-50 dark:bg-zinc-900 border-l border-zinc-200 dark:border-zinc-800 rounded-r-lg px-3 flex items-center justify-center text-xs font-bold text-zinc-500">
-                          R$
-                        </div>
+                        <CalculatorPopover value={amount} onValueChange={setAmount} />
                       </div>
                     </div>
                   </div>
@@ -1917,9 +1916,7 @@ export default function TransactionsPage() {
                           className="h-9 text-xs pr-10" 
                           required 
                         />
-                        <div className="absolute right-0 top-0 bottom-0 bg-zinc-50 dark:bg-zinc-900 border-l border-zinc-200 dark:border-zinc-800 rounded-r-lg px-3 flex items-center justify-center text-xs font-bold text-zinc-500">
-                          R$
-                        </div>
+                        <CalculatorPopover value={amount} onValueChange={setAmount} />
                       </div>
                     </div>
                   </div>

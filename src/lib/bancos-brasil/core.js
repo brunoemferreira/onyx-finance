@@ -74,8 +74,8 @@ const PRESETS = {
     tamanho: 64
   },
   mercadopago: {
-    cor: '#0A0080',
-    fundo: '#00BCFF',
+    cor: '#FFFFFF',
+    fundo: '#009EE3',
     formato: 'quadrado',
     tamanho: 64
   },
