@@ -5,6 +5,7 @@ import { getUserSubscription, createCheckoutSession, createPortalSession } from 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ShieldCheck, Zap, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 
 type Subscription = {
   stripeCustomerId: string;
@@ -27,6 +28,7 @@ export default function BillingPage() {
         setSub(data as Subscription);
       } catch (err) {
         console.error(err);
+        toast.error("Não foi possível carregar as informações de assinatura.");
       } finally {
         setLoading(false);
       }
@@ -43,7 +45,7 @@ export default function BillingPage() {
       }
     } catch (err) {
       console.error(err);
-      alert("Não foi possível iniciar o checkout.");
+      toast.error("Não foi possível iniciar o checkout.");
     } finally {
       setActionLoading(false);
     }
@@ -58,7 +60,7 @@ export default function BillingPage() {
       }
     } catch (err) {
       console.error(err);
-      alert("Não foi possível abrir o portal de faturamento.");
+      toast.error("Não foi possível abrir o portal de faturamento.");
     } finally {
       setActionLoading(false);
     }

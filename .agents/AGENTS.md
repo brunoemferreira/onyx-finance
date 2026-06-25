@@ -9,3 +9,7 @@
 
 - **Atualização do Documento de Skills:** Toda vez que houver atualização de uma nova funcionalidade no sistema, o documento de skills [docs/skills.md](file:///d:/workspace/web-finance/docs/skills.md) deve ser atualizado para listar e detalhar essa nova capacidade do projeto.
 
+## 🍞 Regra de Feedback de Erros (CRÍTICA)
+
+- **Padronização com Toasts:** Toda mensagem de erro exibida para o usuário final no sistema deve ser apresentada utilizando o sistema de **Toast** padrão (`sonner`). É estritamente proibido o uso de `alert()` nativo do navegador ou banners de erro crus, a menos que especificado em contrário.
+

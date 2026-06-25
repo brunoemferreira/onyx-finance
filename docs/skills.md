@@ -13,8 +13,10 @@ Este documento serve como repositório centralizado de todas as funcionalidades,
 - **Root Provider**: Wrapping global da aplicação com `SessionProvider` para compartilhar a sessão com todos os Client Components.
 
 ### 2. Controle de Sessão no Painel & Perfil do Usuário
-- **Sidebar Dinâmica (Desktop & Mobile)**: Exibição em tempo real do avatar do usuário, nome e e-mail. Integração do botão **Sair (Sign Out)** limpando o cookie de sessão e redirecionando para a landing page.
-- **Página de Perfil (`/dashboard/profile`)**: Exibição detalhada de informações do usuário (nome, e-mail, foto, plano ativo e tempo de assinatura).
+- **Reposicionamento do Perfil no Header**: Acesso ao perfil e informações de usuário removido do menu lateral (sidebar) e consolidado no canto superior direito do header, contendo Avatar, Nome e E-mail com ícone dropdown.
+- **Menu Dropdown Interativo**: Ao clicar no bloco de perfil no header, abre-se um menu suspenso contendo links para "Meu Perfil", "Assinatura" e o botão "Sair".
+- **Página de Perfil (`/dashboard/profile`)**: Exibição detalhada de informações cadastrais do usuário (nome, e-mail, foto, status do perfil e data de criação).
+- **Upload de Fotos Customizadas para Contas Locais**: Se o usuário se cadastrou por e-mail e senha (Credentials), a página de perfil permite que ele suba e altere sua foto de perfil de forma interativa. Contas sociais (Google/GitHub OAuth) herdam e travam a imagem importada do provedor.
 
 ### 3. Filtros Avançados & Navegação Cronológica
 - **Navegador Mensal por Setas**: Barra de navegação `< Mês Ano >` que avança/retrocede 1 mês a cada clique de forma dinâmica tanto na listagem de lançamentos quanto na tela de dashboard (sincronizando todos os gráficos).
@@ -66,3 +68,7 @@ Este documento serve como repositório centralizado de todas as funcionalidades,
 - **Modo Privacidade (Olho)**: Funcionalidade global que mascara todos os valores e saldos dos cards substituindo os números por `R$ ••••` ao clicar no ícone do olho.
 - **Gráfico de Despesas Multitabs**: O card de despesas por categoria suporta quatro abas superiores ("Todas", "Receitas", "Despesas", "Não Pagas"), exibe o total acumulado do período no centro da rosca, mostra o período de datas de forma textual e lista a porcentagem representativa de cada categoria.
 
+### 10. Sistema Padronizado de Toasts & Feedback Visual
+- **Biblioteca de Toasts (`sonner`)**: Implementação global do componente `<Toaster />` no layout raiz, fornecendo notificações animadas e estilizadas para interações do usuário.
+- **Substituição de Alertas Nativos**: Remoção completa de caixas de diálogo síncronas `alert(...)` do navegador, substituindo-as por toasts de sucesso e erro na alteração de foto de perfil, uploads de comprovantes de transações e checkouts de assinatura do Stripe.
+- **Ajuste de Limite de Upload (Server Actions)**: Configuração do Next.js para aceitar payloads de até 4 MB para Server Actions (`experimental.serverActions.bodySizeLimit: "4mb"`), resolvendo a limitação padrão de 1 MB e garantindo que o upload de fotos de perfil e comprovantes de transação ocorra com sucesso mesmo com arquivos grandes.
