@@ -17,7 +17,7 @@ Este documento serve como repositório centralizado de todas as funcionalidades,
 - **Página de Perfil (`/dashboard/profile`)**: Exibição detalhada de informações do usuário (nome, e-mail, foto, plano ativo e tempo de assinatura).
 
 ### 3. Filtros Avançados & Navegação Cronológica
-- **Navegador Mensal por Setas**: Barra de navegação `< Mês Ano >` que avança/retrocede 1 mês a cada clique de forma dinâmica.
+- **Navegador Mensal por Setas**: Barra de navegação `< Mês Ano >` que avança/retrocede 1 mês a cada clique de forma dinâmica tanto na listagem de lançamentos quanto na tela de dashboard (sincronizando todos os gráficos).
 - **Filtros Combinados**: Filtros instantâneos por **Tipo** (Receitas, Despesas, Transferências), **Conta/Cartão**, **Categoria** e **Status** (Liquidado, Pendente).
 - **Reset de Filtros**: Botão contextual "Limpar Filtros" para restaurar todos os dropdowns ao estado padrão.
 - **Alinhamento Responsivo**: Filtros alinhados à esquerda utilizando layout flexível que evita deformações ou alongamentos em telas grandes.
@@ -43,6 +43,7 @@ Este documento serve como repositório centralizado de todas as funcionalidades,
 
 ### 6. Lançamentos com Parcelas e Recorrência
 - **Parcelamento Inteligente**: Criação de transações divididas em múltiplas parcelas vinculadas, com cálculo automático da parcela ativa (ex: `1/12`, `2/12`).
+- **Interface de Parcelamento Aprimorada**: A seção de repetição foi renomeada para **"Parcelamento"** (e label para **"Tipo"**), contendo uma visualização prévia em formato de tabela que indica o valor exato rateado individual de cada parcela em R$.
 - **Recorrência Fixa**: Lançamentos automáticos baseados em periodicidade (semanal, mensal, anual) para despesas ou receitas fixas.
 
 ### 7. Gestão e CRUD Completo de Categorias & Subcategorias
@@ -58,4 +59,10 @@ Este documento serve como repositório centralizado de todas as funcionalidades,
 - **Upload Seguro**: Ação de servidor (`uploadReceipt`) que salva arquivos de comprovantes na pasta `/public/uploads` com validação de tamanho máximo de 3 MB e higienização/renomeação inteligente contra conflitos.
 - **Rota de API Protegida (`/api/uploads/[filename]`)**: Rota que valida a sessão do usuário via NextAuth antes de servir os arquivos, prevenindo vulnerabilidades de Path Traversal e garantindo privacidade dos dados.
 - **Visualização Rápida**: Ícone de clipe de papel contextualizado na linha de lançamentos que direciona o usuário autenticado para a visualização direta do anexo.
+
+### 9. Cards de Resumos Premium & Gráficos Avançados
+- **Painéis de Resumo Interativos**: Cards de Receitas, Despesas e Saldo no topo do Dashboard com design de sub-cards coloridos e expansíveis (gavetas "Ver detalhes" / "Ocultar detalhes").
+- **Visualização de Saldo Previsto**: Cálculo dinâmico de saldo futuro (`Saldo Bancário Atual + Receitas Pendentes - Despesas Pendentes`).
+- **Modo Privacidade (Olho)**: Funcionalidade global que mascara todos os valores e saldos dos cards substituindo os números por `R$ ••••` ao clicar no ícone do olho.
+- **Gráfico de Despesas Multitabs**: O card de despesas por categoria suporta quatro abas superiores ("Todas", "Receitas", "Despesas", "Não Pagas"), exibe o total acumulado do período no centro da rosca, mostra o período de datas de forma textual e lista a porcentagem representativa de cada categoria.
 

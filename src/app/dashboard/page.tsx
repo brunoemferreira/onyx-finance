@@ -22,7 +22,11 @@ import {
   ArrowDownLeft,
   RefreshCw,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Eye,
+  EyeOff,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import BankLogo from "@/components/BankLogo";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, PieChart, Pie, Cell } from "recharts";
@@ -89,6 +93,28 @@ export default function Dashboard() {
     const targetMonth = `${selectedMonthDate.getFullYear()}-${String(selectedMonthDate.getMonth() + 1).padStart(2, '0')}`;
     return `${yyyy}-${mm}` === targetMonth;
   });
+
+  const [hideCardValues, setHideCardValues] = useState(false);
+  const [showIncomeDetails, setShowIncomeDetails] = useState(true);
+  const [showExpenseDetails, setShowExpenseDetails] = useState(true);
+  const [showBalanceDetails, setShowBalanceDetails] = useState(true);
+
+  const renderValue = (val: number) => {
+    if (hideCardValues) return "R$ ••••";
+    return formatBRL(val);
+  };
+
+  const getMonthName = (date: Date) => {
+    const monthNames = [
+      "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+      "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+    ];
+    return monthNames[date.getMonth()];
+  };
+
+  const getMonthLastDay = (date: Date) => {
+    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  };
 
   const [activeCardTab, setActiveCardTab] = useState<"todas" | "receitas" | "despesas" | "despesas_nao_pagas">("despesas");
 
@@ -331,45 +357,191 @@ export default function Dashboard() {
       </div>
 
       {/* Cards de Resumo */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Saldo Geral */}
-        <Card className="border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Saldo Geral</CardTitle>
-            <Wallet className="h-4 w-4 text-zinc-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-black text-zinc-900 dark:text-zinc-50">{formatBRL(totalBalance)}</div>
-            <p className="text-[10px] text-zinc-500 mt-1">Soma de todas as contas ativas</p>
-          </CardContent>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Card 1: Receitas */}
+        <Card className="border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950/40 shadow-sm rounded-2xl flex flex-col justify-between p-4 transition-all">
+          <div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 rounded-lg bg-emerald-100/50 dark:bg-emerald-950/40 text-emerald-650 dark:text-emerald-400">
+                  <TrendingUp className="h-4 w-4 stroke-[2.2]" />
+                </span>
+                <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                  Receitas
+                </span>
+              </div>
+              <button 
+                onClick={() => setHideCardValues(prev => !prev)}
+                className="text-zinc-400 hover:text-zinc-650 dark:hover:text-zinc-300 transition-colors cursor-pointer"
+              >
+                {hideCardValues ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+
+            <div className="mt-3">
+              <div className="text-2xl font-black text-zinc-900 dark:text-zinc-50">
+                {renderValue(totalIncome + pendingIncome)}
+              </div>
+              <p className="text-[10px] text-zinc-400 font-medium mt-0.5">
+                {getMonthDateRangeLabel(selectedMonthDate)}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-900/50">
+            <button
+              onClick={() => setShowIncomeDetails(prev => !prev)}
+              className="flex items-center gap-1 text-[10px] font-bold text-zinc-450 hover:text-zinc-650 dark:hover:text-zinc-300 cursor-pointer mb-2"
+            >
+              {showIncomeDetails ? "Ocultar detalhes" : "Ver detalhes"}
+              {showIncomeDetails ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            </button>
+
+            {showIncomeDetails && (
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <div className="bg-emerald-50/20 dark:bg-emerald-950/10 border border-emerald-100/20 dark:border-emerald-900/10 rounded-xl p-2.5">
+                  <div className="flex items-center gap-1.5 text-[9px] font-bold text-emerald-600 dark:text-emerald-400">
+                    <Check className="h-3.5 w-3.5 stroke-[2.5]" /> Recebido
+                  </div>
+                  <div className="text-xs font-bold text-zinc-800 dark:text-zinc-200 mt-1">
+                    {renderValue(totalIncome)}
+                  </div>
+                </div>
+                <div className="bg-amber-50/20 dark:bg-amber-950/10 border border-amber-100/20 dark:border-amber-900/10 rounded-xl p-2.5">
+                  <div className="flex items-center gap-1.5 text-[9px] font-bold text-amber-600 dark:text-amber-400">
+                    <RefreshCw className="h-3 w-3 stroke-[2.5]" /> A receber
+                  </div>
+                  <div className="text-xs font-bold text-zinc-800 dark:text-zinc-200 mt-1">
+                    {renderValue(pendingIncome)}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </Card>
 
-        {/* Receitas */}
-        <Card className="border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Receitas Efetivadas</CardTitle>
-            <TrendingUp className="h-4 w-4 text-zinc-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-black text-zinc-900 dark:text-zinc-50">{formatBRL(totalIncome)}</div>
-            <p className="text-[10px] text-zinc-500 mt-1">
-              {pendingIncome > 0 ? `${formatBRL(pendingIncome)} em aberto` : "Nenhuma receita em aberto"}
-            </p>
-          </CardContent>
+        {/* Card 2: Despesas */}
+        <Card className="border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950/40 shadow-sm rounded-2xl flex flex-col justify-between p-4 transition-all">
+          <div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 rounded-lg bg-rose-100/50 dark:bg-rose-950/40 text-rose-650 dark:text-rose-455">
+                  <TrendingDown className="h-4 w-4 stroke-[2.2]" />
+                </span>
+                <span className="text-xs font-black text-rose-600 dark:text-rose-400 uppercase tracking-wider">
+                  Despesas
+                </span>
+              </div>
+              <button 
+                onClick={() => setHideCardValues(prev => !prev)}
+                className="text-zinc-400 hover:text-zinc-650 dark:hover:text-zinc-300 transition-colors cursor-pointer"
+              >
+                {hideCardValues ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+
+            <div className="mt-3">
+              <div className="text-2xl font-black text-zinc-900 dark:text-zinc-50">
+                {renderValue(totalExpense + pendingExpense)}
+              </div>
+              <p className="text-[10px] text-zinc-400 font-medium mt-0.5">
+                {getMonthDateRangeLabel(selectedMonthDate)}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-900/50">
+            <button
+              onClick={() => setShowExpenseDetails(prev => !prev)}
+              className="flex items-center gap-1 text-[10px] font-bold text-zinc-450 hover:text-zinc-650 dark:hover:text-zinc-300 cursor-pointer mb-2"
+            >
+              {showExpenseDetails ? "Ocultar detalhes" : "Ver detalhes"}
+              {showExpenseDetails ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            </button>
+
+            {showExpenseDetails && (
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <div className="bg-emerald-50/20 dark:bg-emerald-950/10 border border-emerald-100/20 dark:border-emerald-900/10 rounded-xl p-2.5">
+                  <div className="flex items-center gap-1.5 text-[9px] font-bold text-emerald-650 dark:text-emerald-450">
+                    <Check className="h-3.5 w-3.5 stroke-[2.5]" /> Pago
+                  </div>
+                  <div className="text-xs font-bold text-zinc-800 dark:text-zinc-200 mt-1">
+                    {renderValue(totalExpense)}
+                  </div>
+                </div>
+                <div className="bg-rose-50/20 dark:bg-rose-950/10 border border-rose-100/20 dark:border-rose-900/10 rounded-xl p-2.5">
+                  <div className="flex items-center gap-1.5 text-[9px] font-bold text-rose-600 dark:text-rose-455">
+                    <RefreshCw className="h-3 w-3 stroke-[2.5]" /> A pagar
+                  </div>
+                  <div className="text-xs font-bold text-zinc-800 dark:text-zinc-200 mt-1">
+                    {renderValue(pendingExpense)}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </Card>
 
-        {/* Despesas */}
-        <Card className="border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Despesas Efetivadas</CardTitle>
-            <TrendingDown className="h-4 w-4 text-zinc-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-black text-zinc-900 dark:text-zinc-50">{formatBRL(totalExpense)}</div>
-            <p className="text-[10px] text-zinc-500 mt-1">
-              {pendingExpense > 0 ? `${formatBRL(pendingExpense)} em aberto` : "Nenhuma despesa em aberto"}
-            </p>
-          </CardContent>
+        {/* Card 3: Saldo Previsto */}
+        <Card className="border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950/40 shadow-sm rounded-2xl flex flex-col justify-between p-4 transition-all">
+          <div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 rounded-lg bg-sky-100/50 dark:bg-sky-950/40 text-sky-650 dark:text-sky-400">
+                  <Wallet className="h-4 w-4 stroke-[2.2]" />
+                </span>
+                <span className="text-xs font-black text-sky-600 dark:text-sky-400 uppercase tracking-wider">
+                  Saldo Previsto
+                </span>
+              </div>
+              <button 
+                onClick={() => setHideCardValues(prev => !prev)}
+                className="text-zinc-400 hover:text-zinc-650 dark:hover:text-zinc-300 transition-colors cursor-pointer"
+              >
+                {hideCardValues ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+
+            <div className="mt-3">
+              <div className="text-2xl font-black text-zinc-900 dark:text-zinc-50">
+                {renderValue(totalBalance + pendingIncome - pendingExpense)}
+              </div>
+              <p className="text-[10px] text-zinc-400 font-medium mt-0.5">
+                Até {getMonthLastDay(selectedMonthDate)} de {getMonthName(selectedMonthDate)} <span className="text-[9px] text-zinc-400/70 font-normal ml-0.5">(Receita - Despesa + Saldo Bancário)</span>
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-900/50">
+            <button
+              onClick={() => setShowBalanceDetails(prev => !prev)}
+              className="flex items-center gap-1 text-[10px] font-bold text-zinc-450 hover:text-zinc-650 dark:hover:text-zinc-300 cursor-pointer mb-2"
+            >
+              {showBalanceDetails ? "Ocultar detalhes" : "Ver detalhes"}
+              {showBalanceDetails ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            </button>
+
+            {showBalanceDetails && (
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <div className="bg-emerald-50/20 dark:bg-emerald-950/10 border border-emerald-100/20 dark:border-emerald-900/10 rounded-xl p-2.5">
+                  <div className="flex items-center gap-1.5 text-[9px] font-bold text-emerald-650 dark:text-emerald-400">
+                    <Check className="h-3.5 w-3.5 stroke-[2.5]" /> Disponível
+                  </div>
+                  <div className="text-xs font-bold text-zinc-800 dark:text-zinc-200 mt-1">
+                    {renderValue(totalBalance)}
+                  </div>
+                </div>
+                <div className="bg-sky-50/20 dark:bg-sky-950/10 border border-sky-100/20 dark:border-sky-900/10 rounded-xl p-2.5">
+                  <div className="flex items-center gap-1.5 text-[9px] font-bold text-sky-600 dark:text-sky-400">
+                    <RefreshCw className="h-3 w-3 stroke-[2.5]" /> Previsto
+                  </div>
+                  <div className="text-xs font-bold text-zinc-800 dark:text-zinc-200 mt-1">
+                    {renderValue(totalBalance + pendingIncome - pendingExpense)}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </Card>
       </div>
 
