@@ -20,7 +20,9 @@ import {
   Undo2,
   ArrowUpRight,
   ArrowDownLeft,
-  RefreshCw
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import BankLogo from "@/components/BankLogo";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, PieChart, Pie, Cell } from "recharts";
@@ -39,6 +41,17 @@ export default function Dashboard() {
   const [accounts, setAccounts] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+
+  // Month navigation (Default: current month)
+  const [selectedMonthDate, setSelectedMonthDate] = useState(() => new Date());
+
+  const handlePrevMonth = () => {
+    setSelectedMonthDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  };
+
+  const handleNextMonth = () => {
+    setSelectedMonthDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  };
 
   const loadData = async () => {
     try {
@@ -68,37 +81,111 @@ export default function Dashboard() {
     }
   };
 
+  // Filter transactions by selected month
+  const filteredTransactions = transactions.filter((tx) => {
+    const txDate = new Date(tx.date);
+    const yyyy = txDate.getUTCFullYear();
+    const mm = String(txDate.getUTCMonth() + 1).padStart(2, '0');
+    const targetMonth = `${selectedMonthDate.getFullYear()}-${String(selectedMonthDate.getMonth() + 1).padStart(2, '0')}`;
+    return `${yyyy}-${mm}` === targetMonth;
+  });
+
+  const [activeCardTab, setActiveCardTab] = useState<"todas" | "receitas" | "despesas" | "despesas_nao_pagas">("despesas");
+
+  const getMonthDateRangeLabel = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const lastDay = new Date(year, month + 1, 0).getDate();
+    const monthNames = [
+      "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+      "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+    ];
+    return `1 de ${monthNames[month]} - ${lastDay} de ${monthNames[month]}`;
+  };
+
+  // Get active tab chart data and total
+  const tabData = (() => {
+    let filtered: any[] = [];
+    let title = "";
+    
+    if (activeCardTab === "todas") {
+      filtered = filteredTransactions;
+      title = "Todas as Transações";
+    } else if (activeCardTab === "receitas") {
+      filtered = filteredTransactions.filter(t => t.type === "income" && t.isCleared);
+      title = "Todas as Receitas";
+    } else if (activeCardTab === "despesas") {
+      filtered = filteredTransactions.filter(t => t.type === "expense" && t.isCleared);
+      title = "Todas as Despesas";
+    } else if (activeCardTab === "despesas_nao_pagas") {
+      filtered = filteredTransactions.filter(t => t.type === "expense" && !t.isCleared);
+      title = "Despesas Não Pagas";
+    }
+
+    const categoryTotals: Record<string, number> = {};
+    let totalValue = 0;
+
+    filtered.forEach(t => {
+      const catName = t.categoryName || (t.type === "transfer" ? "Transferência" : "Geral");
+      const val = parseFloat(t.amount);
+      categoryTotals[catName] = (categoryTotals[catName] || 0) + val;
+      totalValue += val;
+    });
+
+    const chartData = Object.entries(categoryTotals).map(([name, value]) => {
+      let color = "#71717a";
+      if (name === "Transferência") {
+        color = "#a1a1aa";
+      } else {
+        const cat = categories.find(c => c.name === name);
+        if (cat) color = cat.color;
+      }
+      return {
+        name,
+        value,
+        color,
+        percentage: totalValue > 0 ? (value / totalValue) * 100 : 0
+      };
+    });
+
+    return {
+      chartData,
+      totalValue,
+      title
+    };
+  })();
+
   // 1. Saldo Geral (Soma de contas checking, savings, investment, cash)
   const totalBalance = accounts
     .filter(a => a.type !== "credit_card")
     .reduce((sum, a) => sum + parseFloat(a.initialBalance), 0);
 
-  // 2. Receitas Efetivadas (Soma de transações type === 'income' no mês atual que estão liquidadas)
-  const totalIncome = transactions
+  // 2. Receitas Efetivadas (Soma de transações type === 'income' no mês selecionado que estão liquidadas)
+  const totalIncome = filteredTransactions
     .filter(t => t.type === "income" && t.isCleared)
     .reduce((sum, t) => sum + parseFloat(t.amount), 0);
 
-  // Receitas Pendentes (Soma de transações type === 'income' no mês atual em aberto)
-  const pendingIncome = transactions
+  // Receitas Pendentes (Soma de transações type === 'income' no mês selecionado em aberto)
+  const pendingIncome = filteredTransactions
     .filter(t => t.type === "income" && !t.isCleared)
     .reduce((sum, t) => sum + parseFloat(t.amount), 0);
 
-  // 3. Despesas Efetivadas (Soma de transações type === 'expense' no mês atual que estão liquidadas)
-  const totalExpense = transactions
+  // 3. Despesas Efetivadas (Soma de transações type === 'expense' no mês selecionado que estão liquidadas)
+  const totalExpense = filteredTransactions
     .filter(t => t.type === "expense" && t.isCleared)
     .reduce((sum, t) => sum + parseFloat(t.amount), 0);
 
-  // Despesas Pendentes (Soma de transações type === 'expense' no mês atual em aberto)
-  const pendingExpense = transactions
+  // Despesas Pendentes (Soma de transações type === 'expense' no mês selecionado em aberto)
+  const pendingExpense = filteredTransactions
     .filter(t => t.type === "expense" && !t.isCleared)
     .reduce((sum, t) => sum + parseFloat(t.amount), 0);
 
   // 4. Categorias Dinâmicas
   const categoryChartData = (() => {
-    if (transactions.length === 0) return [];
+    if (filteredTransactions.length === 0) return [];
     
     const categoryTotals: Record<string, number> = {};
-    transactions
+    filteredTransactions
       .filter(t => t.type === "expense" && t.categoryName)
       .forEach(t => {
         categoryTotals[t.categoryName!] = (categoryTotals[t.categoryName!] || 0) + parseFloat(t.amount);
@@ -114,28 +201,34 @@ export default function Dashboard() {
     });
   })();
 
-  // 5. Gráfico de Fluxo de Caixa (Saldo diário acumulado nos últimos 30 dias para Liquidado vs Pendente)
+  // 5. Gráfico de Fluxo de Caixa (Saldo diário acumulado no mês selecionado para Liquidado vs Pendente)
   const chartData = (() => {
     if (accounts.length === 0) return [];
 
-    const now = new Date();
-    const daysList: { date: Date; label: string }[] = [];
+    const todayDate = new Date();
+    const year = selectedMonthDate.getFullYear();
+    const month = selectedMonthDate.getMonth();
+    const firstDayOfMonth = new Date(Date.UTC(year, month, 1));
+    const lastDayOfMonth = new Date(Date.UTC(year, month + 1, 0));
 
-    // Gera os últimos 30 dias em formato UTC para consistência
-    for (let i = 29; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(now.getDate() - i);
-      const utcDate = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const latestDate = todayDate > lastDayOfMonth ? todayDate : lastDayOfMonth;
+    
+    const daysList: { date: Date; label: string; isTargetMonth: boolean }[] = [];
+    const temp = new Date(Date.UTC(latestDate.getFullYear(), latestDate.getMonth(), latestDate.getDate()));
+    const limit = new Date(Date.UTC(firstDayOfMonth.getFullYear(), firstDayOfMonth.getMonth(), firstDayOfMonth.getDate()));
+
+    while (temp >= limit) {
+      const utcDate = new Date(temp);
       const label = `${String(utcDate.getUTCDate()).padStart(2, '0')}/${String(utcDate.getUTCMonth() + 1).padStart(2, '0')}`;
-      daysList.push({ date: utcDate, label });
+      const isTargetMonth = utcDate.getUTCMonth() === month && utcDate.getUTCFullYear() === year;
+      daysList.push({ date: utcDate, label, isTargetMonth });
+      temp.setDate(temp.getDate() - 1);
     }
 
-    // Saldo atual consolidado das contas (Saldo Liquidado hoje)
     let runningCleared = accounts
       .filter(a => a.type !== "credit_card")
       .reduce((sum, a) => sum + parseFloat(a.initialBalance), 0);
 
-    // Saldo atual planejado/pendente (inclui todas as transações que ainda não foram liquidadas)
     let runningPending = runningCleared + transactions
       .filter(t => !t.isCleared)
       .reduce((sum, t) => {
@@ -143,20 +236,19 @@ export default function Dashboard() {
         return sum + (t.type === "income" ? val : t.type === "expense" ? -val : 0);
       }, 0);
 
-    const result: { day: string; liquidado: number; pendente: number }[] = [];
+    const allDaysResult: { day: string; liquidado: number; pendente: number }[] = [];
 
-    // Iteramos de hoje para trás para reconstruir o saldo acumulado retroativo
-    for (let i = daysList.length - 1; i >= 0; i--) {
+    for (let i = 0; i < daysList.length; i++) {
       const currentDay = daysList[i];
-      
-      // Adiciona o saldo diário no início do resultado (unshift mantém a ordem cronológica)
-      result.unshift({
-        day: currentDay.label,
-        liquidado: runningCleared,
-        pendente: runningPending,
-      });
 
-      // Filtra transações ocorridas nesta data específica
+      if (currentDay.isTargetMonth) {
+        allDaysResult.push({
+          day: currentDay.label,
+          liquidado: runningCleared,
+          pendente: runningPending,
+        });
+      }
+
       const txsToday = transactions.filter(t => {
         const tDate = new Date(t.date);
         return tDate.getUTCFullYear() === currentDay.date.getUTCFullYear() &&
@@ -164,7 +256,6 @@ export default function Dashboard() {
                tDate.getUTCDate() === currentDay.date.getUTCDate();
       });
 
-      // Reverte o efeito dessas transações para obter o saldo do início do dia
       txsToday.forEach((tx) => {
         const val = parseFloat(tx.amount);
         if (tx.isCleared) {
@@ -185,11 +276,11 @@ export default function Dashboard() {
       });
     }
 
-    return result;
+    return allDaysResult.reverse();
   })();
 
   // 6. Transações Recentes
-  const recentTxs = transactions.slice(0, 5);
+  const recentTxs = filteredTransactions.slice(0, 5);
 
   if (loading) {
     return <div className="text-center py-20 text-zinc-500">Carregando painel financeiro...</div>;
@@ -205,9 +296,34 @@ export default function Dashboard() {
             Seu resumo financeiro atualizado em tempo real.
           </p>
         </div>
-        <div className="flex gap-3">
-          <Link href="/dashboard/transactions">
-            <Button className="bg-zinc-900 text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-950 dark:hover:bg-zinc-200">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+          {/* Navegador Mensal */}
+          <div className="flex items-center justify-between border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/10 rounded-xl px-2 h-9 w-52 shrink-0">
+            <Button 
+              type="button"
+              variant="ghost" 
+              size="icon" 
+              onClick={handlePrevMonth} 
+              className="h-7 w-7 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 cursor-pointer"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-xs font-bold capitalize text-zinc-900 dark:text-zinc-100 text-center flex-1 select-none">
+              {selectedMonthDate.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
+            </span>
+            <Button 
+              type="button"
+              variant="ghost" 
+              size="icon" 
+              onClick={handleNextMonth} 
+              className="h-7 w-7 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 cursor-pointer"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <Link href="/dashboard/transactions" className="w-full sm:w-auto">
+            <Button className="bg-zinc-900 text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-950 dark:hover:bg-zinc-200 w-full h-9">
               <Plus className="mr-2 h-4 w-4" /> Novo Lançamento
             </Button>
           </Link>
@@ -268,7 +384,7 @@ export default function Dashboard() {
           <CardContent className="h-80">
             {chartData.length === 0 ? (
               <div className="flex flex-col items-center justify-center text-center h-full text-zinc-500 py-10">
-                <p className="text-xs mb-3">Nenhum lançamento realizado nos últimos 30 dias.</p>
+                <p className="text-xs mb-3">Nenhum lançamento realizado neste mês.</p>
                 <Link href="/dashboard/transactions">
                   <Button variant="outline" size="sm" className="text-xs rounded-xl">
                     Criar Lançamento
@@ -343,22 +459,55 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Distribuição por Categoria */}
+        {/* Distribuição por Categoria / Despesas */}
         <Card className="lg:col-span-1 border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950 flex flex-col justify-between">
-          <CardHeader>
-            <CardTitle className="text-sm font-semibold">Gastos por Categoria</CardTitle>
-            <CardDescription className="text-xs">Distribuição de custos baseada em despesas liquidas.</CardDescription>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold">Despesas</CardTitle>
+            </div>
+            
+            {/* Tabs Selector */}
+            <div className="flex border-b border-zinc-100 dark:border-zinc-900 mt-2 overflow-x-auto scrollbar-none pb-0.5">
+              {(["todas", "receitas", "despesas", "despesas_nao_pagas"] as const).map((tab) => {
+                const label = tab === "todas" ? "Todas" 
+                            : tab === "receitas" ? "Receitas" 
+                            : tab === "despesas" ? "Despesas" 
+                            : "Não Pagas";
+                const isActive = activeCardTab === tab;
+                return (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveCardTab(tab)}
+                    className={`text-[10px] font-bold px-2.5 py-1.5 border-b-2 transition-all cursor-pointer whitespace-nowrap -mb-[2px] ${
+                      isActive 
+                        ? "border-zinc-900 dark:border-zinc-100 text-zinc-900 dark:text-zinc-100" 
+                        : "border-transparent text-zinc-450 hover:text-zinc-700 dark:hover:text-zinc-300"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
           </CardHeader>
-          <CardContent className="h-80 flex flex-col justify-between">
-            {categoryChartData.length === 0 ? (
-              <div className="text-center text-zinc-500 py-10 flex-1 flex items-center justify-center text-xs">Sem despesas este mês.</div>
+          
+          <CardContent className="flex-1 flex flex-col justify-between pt-2">
+            <div className="text-center mb-2">
+              <p className="text-xs font-bold text-zinc-700 dark:text-zinc-300">{tabData.title}</p>
+              <p className="text-[10px] text-zinc-400">{getMonthDateRangeLabel(selectedMonthDate)}</p>
+            </div>
+
+            {tabData.chartData.length === 0 ? (
+              <div className="text-center text-zinc-500 py-10 flex-1 flex items-center justify-center text-xs">
+                Nenhum lançamento nesta categoria este mês.
+              </div>
             ) : (
               <>
-                <div className="h-44 w-full">
+                <div className="h-44 w-full relative">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                         data={categoryChartData}
+                         data={tabData.chartData}
                          cx="50%"
                          cy="50%"
                          innerRadius={50}
@@ -366,7 +515,7 @@ export default function Dashboard() {
                          paddingAngle={3}
                          dataKey="value"
                       >
-                        {categoryChartData.map((entry, index) => (
+                        {tabData.chartData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
@@ -379,16 +528,29 @@ export default function Dashboard() {
                       />
                     </PieChart>
                   </ResponsiveContainer>
+                  
+                  {/* Centered label */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span className="text-xs font-black text-zinc-900 dark:text-zinc-50 leading-tight">
+                      {formatBRL(tabData.totalValue)}
+                    </span>
+                    <span className="text-[9px] text-zinc-400 font-bold uppercase tracking-wider">
+                      Total
+                    </span>
+                  </div>
                 </div>
                 
                 <div className="space-y-1.5 mt-4 max-h-[120px] overflow-y-auto pr-1">
-                  {categoryChartData.map((cat, i) => (
+                  {tabData.chartData.map((cat, i) => (
                     <div key={i} className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
                       <div className="flex items-center gap-2">
                         <span className="h-2 w-2 rounded-full" style={{ backgroundColor: cat.color }} />
                         <span className="truncate max-w-[120px]">{cat.name}</span>
                       </div>
-                      <span className="font-semibold text-zinc-900 dark:text-zinc-50">{formatBRL(cat.value)}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-zinc-900 dark:text-zinc-50">{formatBRL(cat.value)}</span>
+                        <span className="text-[10px] text-zinc-400">({cat.percentage.toFixed(1)}%)</span>
+                      </div>
                     </div>
                   ))}
                 </div>

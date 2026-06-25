@@ -1596,14 +1596,14 @@ export default function TransactionsPage() {
                 </div>
               </div>
 
-              {/* Seção 2: Repetição de Lançamentos */}
+              {/* Seção 2: Parcelamento */}
               {type !== "transfer" && (
                 <div className="border border-zinc-200 dark:border-zinc-900 rounded-xl overflow-hidden bg-white dark:bg-zinc-950/20">
                   <div className="bg-zinc-50/70 dark:bg-zinc-900/50 px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-900 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <RefreshCw className="h-4 w-4 text-[#0B4F83] dark:text-[#218FDE]" />
                       <span className="font-bold text-xs uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
-                        Repetição de Lançamentos
+                        Parcelamento
                       </span>
                     </div>
                   </div>
@@ -1611,7 +1611,7 @@ export default function TransactionsPage() {
                   <div className="p-4 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Repetição</label>
+                        <label className="text-xs font-bold text-zinc-650 dark:text-zinc-350 block mb-1">Tipo</label>
                         <Select 
                           value={isInstallment ? "installment" : isRecurring ? "recurring" : "single"}
                           onValueChange={(val) => {
@@ -1678,15 +1678,22 @@ export default function TransactionsPage() {
                             <tr>
                               <th className="px-4 py-2 border-b border-zinc-200 dark:border-zinc-800">Parcela</th>
                               <th className="px-4 py-2 border-b border-zinc-200 dark:border-zinc-800">Data de Vencimento</th>
+                              <th className="px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 text-right">Valor</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800 text-zinc-600 dark:text-zinc-400">
-                            {getInstallmentProjections().map((proj) => (
-                              <tr key={proj.installment} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-900/10">
-                                <td className="px-4 py-1.5 font-medium">{proj.installment}</td>
-                                <td className="px-4 py-1.5">{proj.dateStr}</td>
-                              </tr>
-                            ))}
+                            {(() => {
+                              const parsedAmount = parseFloat(amount) || 0;
+                              const count = parseInt(totalInstallments) || 1;
+                              const valPerInstallment = parsedAmount / count;
+                              return getInstallmentProjections().map((proj) => (
+                                <tr key={proj.installment} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-900/10">
+                                  <td className="px-4 py-1.5 font-medium">{proj.installment}</td>
+                                  <td className="px-4 py-1.5">{proj.dateStr}</td>
+                                  <td className="px-4 py-1.5 text-right">{formatCurrency(valPerInstallment)}</td>
+                                </tr>
+                              ));
+                            })()}
                           </tbody>
                         </table>
                       </div>
