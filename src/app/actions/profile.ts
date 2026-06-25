@@ -1,8 +1,9 @@
 "use server";
 
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { users, bankAccounts, categories, transactions } from "@/db/schema";
 import { getUserId } from "./accounts";
+import { getCategories } from "./categories";
 import { eq } from "drizzle-orm";
 import { promises as fs } from "fs";
 import path from "path";
@@ -83,4 +84,37 @@ export async function uploadProfileImage(formData: FormData) {
     success: true,
     url: `/api/uploads/${uniqueName}`
   };
+}
+
+export async function resetUserData() {
+  const userId = await getUserId();
+  if (!userId) {
+    throw new Error("Usuário não autenticado");
+  }
+
+  try {
+    // Delete all transactions
+    await db.delete(transactions).where(eq(transactions.userId, userId));
+
+    // Delete all bank accounts
+    await db.delete(bankAccounts).where(eq(bankAccounts.userId, userId));
+
+    // Delete all user categories
+    await db.delete(categories).where(eq(categories.userId, userId));
+
+    // Trigger categories re-seeding by calling getCategories() so they are immediately available
+    await getCategories();
+
+    // Revalidate paths
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/transactions");
+    revalidatePath("/dashboard/categories");
+    revalidatePath("/dashboard/accounts");
+    revalidatePath("/dashboard/profile");
+
+    return { success: true };
+  } catch (error) {
+    console.error("Erro ao resetar dados do usuário:", error);
+    throw new Error("Não foi possível resetar os dados.");
+  }
 }

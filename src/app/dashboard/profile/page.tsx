@@ -2,17 +2,22 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { User, Mail, Shield, Calendar, ArrowLeft, CheckCircle2, Camera } from "lucide-react";
+import { User, Mail, Shield, Calendar, ArrowLeft, CheckCircle2, Camera, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { getUserProfile, updateUserProfileImage, uploadProfileImage } from "@/app/actions/profile";
+import { getUserProfile, updateUserProfileImage, uploadProfileImage, resetUserData } from "@/app/actions/profile";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function ProfilePage() {
   const { data: session, status: sessionStatus, update } = useSession();
   const [profileData, setProfileData] = useState<any>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [activeTab, setActiveTab] = useState<"details" | "settings">("details");
+  const [isResetOpen, setIsResetOpen] = useState(false);
+  const [resetConfirmation, setResetConfirmation] = useState("");
+  const [resetting, setResetting] = useState(false);
 
   const loadProfile = async () => {
     try {
@@ -60,6 +65,23 @@ export default function ProfilePage() {
       toast.error("Falha ao atualizar foto de perfil.");
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleResetData = async () => {
+    if (resetConfirmation !== "APAGAR MEUS DADOS") return;
+    try {
+      setResetting(true);
+      await resetUserData();
+      toast.success("Todos os seus dados financeiros foram apagados com sucesso!");
+      setIsResetOpen(false);
+      setResetConfirmation("");
+      await loadProfile();
+    } catch (err) {
+      console.error(err);
+      toast.error("Falha ao apagar os dados.");
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -162,71 +184,182 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Right Card: Details Form */}
-        <div className="md:col-span-2 rounded-2xl border border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950 p-6 space-y-6">
-          <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-50 border-b border-zinc-100 dark:border-zinc-900 pb-3">Detalhes da Conta</h3>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
-                <User className="h-3 w-3" />
-                Nome Completo
-              </label>
-              <input
-                type="text"
-                readOnly
-                value={profileData.name || "Não informado"}
-                className="w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 px-3 py-2 text-sm text-zinc-800 dark:text-zinc-200 focus:outline-none"
-              />
+        {/* Right Card: Details / Settings Tabs */}
+        <div className="md:col-span-2 rounded-2xl border border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950 p-6 flex flex-col justify-between">
+          <div className="space-y-6">
+            {/* Tab Selector Switcher */}
+            <div className="flex gap-2 p-1 bg-zinc-950/60 rounded-xl border border-zinc-800/40">
+              <button
+                type="button"
+                onClick={() => setActiveTab("details")}
+                className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                  activeTab === "details"
+                    ? "bg-zinc-900 text-zinc-100 shadow-md border border-zinc-850"
+                    : "text-zinc-500 hover:text-zinc-300"
+                }`}
+              >
+                Dados da Conta
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("settings")}
+                className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                  activeTab === "settings"
+                    ? "bg-zinc-900 text-zinc-100 shadow-md border border-zinc-850"
+                    : "text-zinc-500 hover:text-zinc-300"
+                }`}
+              >
+                Configurações
+              </button>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
-                <Mail className="h-3 w-3" />
-                E-mail
-              </label>
-              <input
-                type="email"
-                readOnly
-                value={profileData.email || ""}
-                className="w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 px-3 py-2 text-sm text-zinc-800 dark:text-zinc-200 focus:outline-none"
-              />
-            </div>
+            {activeTab === "details" ? (
+              <div className="space-y-6">
+                <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-50 border-b border-zinc-100 dark:border-zinc-900 pb-3">Detalhes da Conta</h3>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
+                      <User className="h-3 w-3" />
+                      Nome Completo
+                    </label>
+                    <input
+                      type="text"
+                      readOnly
+                      value={profileData.name || "Não informado"}
+                      className="w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 px-3 py-2 text-sm text-zinc-800 dark:text-zinc-200 focus:outline-none"
+                    />
+                  </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
-                <Calendar className="h-3 w-3" />
-                Membro Desde
-              </label>
-              <input
-                type="text"
-                readOnly
-                value={new Date(profileData.createdAt).toLocaleDateString("pt-BR", { year: "numeric", month: "long" })}
-                className="w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 px-3 py-2 text-sm text-zinc-800 dark:text-zinc-200 focus:outline-none"
-              />
-            </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
+                      <Mail className="h-3 w-3" />
+                      E-mail
+                    </label>
+                    <input
+                      type="email"
+                      readOnly
+                      value={profileData.email || ""}
+                      className="w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 px-3 py-2 text-sm text-zinc-800 dark:text-zinc-200 focus:outline-none"
+                    />
+                  </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
-                <Shield className="h-3 w-3" />
-                Status do Perfil
-              </label>
-              <div className="flex items-center gap-1.5 h-9 px-1">
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200">Verificado</span>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
+                      <Calendar className="h-3 w-3" />
+                      Membro Desde
+                    </label>
+                    <input
+                      type="text"
+                      readOnly
+                      value={new Date(profileData.createdAt).toLocaleDateString("pt-BR", { year: "numeric", month: "long" })}
+                      className="w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 px-3 py-2 text-sm text-zinc-800 dark:text-zinc-200 focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
+                      <Shield className="h-3 w-3" />
+                      Status do Perfil
+                    </label>
+                    <div className="flex items-center gap-1.5 h-9 px-1">
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200">Verificado</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-zinc-100 dark:border-zinc-900 flex justify-end">
+                  <span className="text-xs text-zinc-400 dark:text-zinc-500">
+                    {profileData.hasPassword 
+                      ? "Perfil local. Clique sobre a imagem para carregar uma foto personalizada." 
+                      : "Perfil sincronizado via provedor OAuth de autenticação social."}
+                  </span>
+                </div>
               </div>
-            </div>
-          </div>
+            ) : (
+              <div className="space-y-6">
+                <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-50 border-b border-zinc-100 dark:border-zinc-900 pb-3">Configurações do Sistema</h3>
+                
+                <div className="rounded-xl border border-red-900/20 bg-red-950/5 p-5 space-y-4">
+                  <div className="space-y-1">
+                    <h4 className="font-bold text-red-500 text-sm">Zona de Perigo</h4>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">Ações destrutivas e irreversíveis.</p>
+                  </div>
+                  
+                  <p className="text-xs text-zinc-650 dark:text-zinc-400 leading-relaxed">
+                    Ao limpar os dados do sistema, todas as suas **Contas Financeiras**, **Cartões de Crédito**, **Transações** e comprovantes associados serão permanentemente excluídos. Suas **Categorias** personalizadas serão removidas e restauradas para a árvore de categorias padrão inicial.
+                  </p>
 
-          <div className="pt-4 border-t border-zinc-100 dark:border-zinc-900 flex justify-end">
-            <span className="text-xs text-zinc-400 dark:text-zinc-500">
-              {profileData.hasPassword 
-                ? "Perfil local. Clique sobre a imagem para carregar uma foto personalizada." 
-                : "Perfil sincronizado via provedor OAuth de autenticação social."}
-            </span>
+                  <div className="p-3 bg-zinc-50 dark:bg-zinc-900/60 rounded-lg border border-zinc-150 dark:border-zinc-900 text-xs text-zinc-500">
+                    <strong>Aviso de segurança:</strong> As informações de acesso (E-mail, Senha e Cadastro de Perfil) **não** serão afetadas por esta limpeza.
+                  </div>
+
+                  <div className="pt-2">
+                    <Button 
+                      type="button" 
+                      variant="destructive"
+                      onClick={() => {
+                        setResetConfirmation("");
+                        setIsResetOpen(true);
+                      }}
+                      className="bg-red-600 hover:bg-red-750 text-white rounded-xl font-semibold text-xs"
+                    >
+                      Limpar Todos os Dados
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Double confirmation Dialog */}
+      <Dialog open={isResetOpen} onOpenChange={setIsResetOpen}>
+        <DialogContent className="border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950 sm:max-w-[450px] rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-red-500 font-bold">Apagar todos os dados?</DialogTitle>
+            <DialogDescription className="text-xs text-zinc-500">
+              Esta ação é definitiva e não poderá ser desfeita. Todos os lançamentos e contas cadastradas serão apagados.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-3">
+            <p className="text-xs text-zinc-700 dark:text-zinc-350">
+              Para confirmar a redefinição completa de seus dados financeiros, digite exatamente a frase <strong className="text-zinc-900 dark:text-zinc-100">APAGAR MEUS DADOS</strong> em letras maiúsculas:
+            </p>
+            <input
+              type="text"
+              value={resetConfirmation}
+              onChange={(e) => setResetConfirmation(e.target.value)}
+              placeholder="APAGAR MEUS DADOS"
+              className="flex w-full rounded-xl border border-zinc-250 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 px-4 py-3 text-sm text-zinc-800 dark:text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-750 transition-colors"
+            />
+          </div>
+
+          <DialogFooter className="flex gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsResetOpen(false)} disabled={resetting} className="rounded-xl">
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={resetConfirmation !== "APAGAR MEUS DADOS" || resetting}
+              onClick={handleResetData}
+              className="bg-red-600 hover:bg-red-750 text-white font-bold rounded-xl"
+            >
+              {resetting ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Apagando...
+                </span>
+              ) : (
+                "Confirmar e Apagar"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
