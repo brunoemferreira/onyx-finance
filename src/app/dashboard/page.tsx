@@ -26,7 +26,8 @@ import {
   Eye,
   EyeOff,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Clock
 } from "lucide-react";
 import BankLogo from "@/components/BankLogo";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, PieChart, Pie, Cell } from "recharts";
@@ -98,6 +99,7 @@ export default function Dashboard() {
   const [showIncomeDetails, setShowIncomeDetails] = useState(true);
   const [showExpenseDetails, setShowExpenseDetails] = useState(true);
   const [showBalanceDetails, setShowBalanceDetails] = useState(true);
+  const [showPrevMonthDetails, setShowPrevMonthDetails] = useState(true);
 
   const renderValue = (val: number) => {
     if (hideCardValues) return "R$ ••••";
@@ -116,7 +118,7 @@ export default function Dashboard() {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
   };
 
-  const [activeCardTab, setActiveCardTab] = useState<"todas" | "receitas" | "despesas" | "despesas_nao_pagas">("despesas");
+  const [activeCardTab, setActiveCardTab] = useState<"todas" | "receitas" | "despesas" | "despesas_nao_pagas" | "receitas_nao_recebidas">("todas");
 
   const getMonthDateRangeLabel = (date: Date) => {
     const year = date.getFullYear();
@@ -133,10 +135,12 @@ export default function Dashboard() {
   const tabData = (() => {
     let filtered: any[] = [];
     let title = "";
+    let isTodas = false;
     
     if (activeCardTab === "todas") {
       filtered = filteredTransactions;
-      title = "Todas as Transações";
+      title = "Receitas vs Despesas";
+      isTodas = true;
     } else if (activeCardTab === "receitas") {
       filtered = filteredTransactions.filter(t => t.type === "income" && t.isCleared);
       title = "Todas as Receitas";
@@ -146,21 +150,43 @@ export default function Dashboard() {
     } else if (activeCardTab === "despesas_nao_pagas") {
       filtered = filteredTransactions.filter(t => t.type === "expense" && !t.isCleared);
       title = "Despesas Não Pagas";
+    } else if (activeCardTab === "receitas_nao_recebidas") {
+      filtered = filteredTransactions.filter(t => t.type === "income" && !t.isCleared);
+      title = "Receitas Não Recebidas";
     }
 
     const categoryTotals: Record<string, number> = {};
     let totalValue = 0;
+    let netValue = 0;
 
     filtered.forEach(t => {
-      const catName = t.categoryName || (t.type === "transfer" ? "Transferência" : "Geral");
+      let catName = "";
+      if (isTodas) {
+        if (t.type === "income") catName = "Receitas";
+        else if (t.type === "expense") catName = "Despesas";
+        else return; // Ignore transfers in "Todas"
+      } else {
+        catName = t.categoryName || (t.type === "transfer" ? "Transferência" : "Geral");
+      }
+      
       const val = parseFloat(t.amount);
       categoryTotals[catName] = (categoryTotals[catName] || 0) + val;
       totalValue += val;
+      
+      if (isTodas) {
+        if (t.type === "income") netValue += val;
+        else if (t.type === "expense") netValue -= val;
+      } else {
+        netValue += val;
+      }
     });
 
     const chartData = Object.entries(categoryTotals).map(([name, value]) => {
       let color = "#71717a";
-      if (name === "Transferência") {
+      if (isTodas) {
+        if (name === "Receitas") color = "#10b981"; // emerald-500
+        else if (name === "Despesas") color = "#f43f5e"; // rose-500
+      } else if (name === "Transferência") {
         color = "#a1a1aa";
       } else {
         const cat = categories.find(c => c.name === name);
@@ -172,11 +198,12 @@ export default function Dashboard() {
         color,
         percentage: totalValue > 0 ? (value / totalValue) * 100 : 0
       };
-    });
+    }).sort((a, b) => b.value - a.value);
 
     return {
       chartData,
       totalValue,
+      displayValue: isTodas ? netValue : totalValue,
       title
     };
   })();
@@ -205,6 +232,40 @@ export default function Dashboard() {
   const pendingExpense = filteredTransactions
     .filter(t => t.type === "expense" && !t.isCleared)
     .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+
+  // 4. Saldo Do Período Anterior
+  const prevMonthBalanceData = (() => {
+    const year = selectedMonthDate.getFullYear();
+    const month = selectedMonthDate.getMonth();
+    const lastDayOfPrevMonth = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
+
+    let clearedBalance = totalBalance;
+
+    transactions.forEach(t => {
+      const tDate = new Date(t.date);
+      if (tDate > lastDayOfPrevMonth && t.isCleared) {
+        const val = parseFloat(t.amount);
+        if (t.type === "income") clearedBalance -= val;
+        else if (t.type === "expense") clearedBalance += val;
+      }
+    });
+
+    let pendencies = 0;
+    transactions.forEach(t => {
+      const tDate = new Date(t.date);
+      if (tDate <= lastDayOfPrevMonth && !t.isCleared) {
+        const val = parseFloat(t.amount);
+        if (t.type === "income") pendencies += val;
+        else if (t.type === "expense") pendencies -= val;
+      }
+    });
+
+    return {
+      disponivel: clearedBalance,
+      pendencias: pendencies,
+      total: clearedBalance + pendencies
+    };
+  })();
 
   // 4. Categorias Dinâmicas
   const categoryChartData = (() => {
@@ -357,7 +418,74 @@ export default function Dashboard() {
       </div>
 
       {/* Cards de Resumo */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        {/* Card 0: Saldo Do Período Anterior */}
+        <Card className="border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950/40 shadow-sm rounded-2xl flex flex-col justify-between p-4 transition-all">
+          <div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 rounded-lg bg-blue-100/50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400">
+                  <TrendingUp className="h-4 w-4 stroke-[2.2]" />
+                </span>
+                <span className="text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+                  Saldo Do Período Anterior
+                </span>
+              </div>
+              <button 
+                onClick={() => setHideCardValues(prev => !prev)}
+                className="text-zinc-400 hover:text-zinc-650 dark:hover:text-zinc-300 transition-colors cursor-pointer"
+              >
+                {hideCardValues ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+
+            <div className="mt-3">
+              <div className="text-2xl font-black text-blue-600 dark:text-blue-400">
+                {renderValue(prevMonthBalanceData.total)}
+              </div>
+              <div className="flex justify-between items-center mt-0.5">
+                <p className="text-[10px] text-zinc-400 font-medium capitalize">
+                  Até {new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth(), 0).getDate()} de {new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth(), 0).toLocaleDateString('pt-BR', { month: 'long' })}
+                </p>
+                <span className="text-[9px] text-zinc-400/70 font-normal">
+                  (Receita - Despesa + Saldo Bancário)
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-900/50">
+            <button
+              onClick={() => setShowPrevMonthDetails(prev => !prev)}
+              className="flex items-center gap-1 text-[10px] font-bold text-zinc-450 hover:text-zinc-650 dark:hover:text-zinc-300 cursor-pointer mb-2"
+            >
+              {showPrevMonthDetails ? "Ocultar detalhes" : "Ver detalhes"}
+              {showPrevMonthDetails ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            </button>
+
+            {showPrevMonthDetails && (
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <div className="bg-orange-50/20 dark:bg-orange-950/10 border border-orange-100/20 dark:border-orange-900/10 rounded-xl p-2.5">
+                  <div className="flex items-center gap-1.5 text-[9px] font-bold text-orange-600 dark:text-orange-400">
+                    <Clock className="h-3.5 w-3.5 stroke-[2.5]" /> Pendências
+                  </div>
+                  <div className="text-xs font-bold text-orange-600 dark:text-orange-400 mt-1">
+                    {renderValue(prevMonthBalanceData.pendencias)}
+                  </div>
+                </div>
+                <div className="bg-emerald-50/20 dark:bg-emerald-950/10 border border-emerald-100/20 dark:border-emerald-900/10 rounded-xl p-2.5">
+                  <div className="flex items-center gap-1.5 text-[9px] font-bold text-emerald-600 dark:text-emerald-400">
+                    <Check className="h-3.5 w-3.5 stroke-[2.5]" /> Disponível
+                  </div>
+                  <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+                    {renderValue(prevMonthBalanceData.disponivel)}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </Card>
+
         {/* Card 1: Receitas */}
         <Card className="border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950/40 shadow-sm rounded-2xl flex flex-col justify-between p-4 transition-all">
           <div>
@@ -635,16 +763,17 @@ export default function Dashboard() {
         <Card className="lg:col-span-1 border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950 flex flex-col justify-between">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-semibold">Despesas</CardTitle>
+              <CardTitle className="text-sm font-semibold">Gráficos</CardTitle>
             </div>
             
             {/* Tabs Selector */}
             <div className="flex border-b border-zinc-100 dark:border-zinc-900 mt-2 overflow-x-auto scrollbar-none pb-0.5">
-              {(["todas", "receitas", "despesas", "despesas_nao_pagas"] as const).map((tab) => {
+              {(["todas", "receitas", "despesas", "despesas_nao_pagas", "receitas_nao_recebidas"] as const).map((tab) => {
                 const label = tab === "todas" ? "Todas" 
                             : tab === "receitas" ? "Receitas" 
                             : tab === "despesas" ? "Despesas" 
-                            : "Não Pagas";
+                            : tab === "despesas_nao_pagas" ? "Não Pagas"
+                            : "Não Recebidas";
                 const isActive = activeCardTab === tab;
                 return (
                   <button
@@ -704,10 +833,10 @@ export default function Dashboard() {
                   {/* Centered label */}
                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                     <span className="text-xs font-black text-zinc-900 dark:text-zinc-50 leading-tight">
-                      {formatBRL(tabData.totalValue)}
+                      {formatBRL(tabData.displayValue)}
                     </span>
                     <span className="text-[9px] text-zinc-400 font-bold uppercase tracking-wider">
-                      Total
+                      {activeCardTab === "todas" ? "Saldo" : "Total"}
                     </span>
                   </div>
                 </div>
