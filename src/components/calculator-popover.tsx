@@ -15,9 +15,12 @@ export function CalculatorPopover({ value, onValueChange }: CalculatorPopoverPro
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    if (isOpen) {
-      setExpression(value || "");
-    }
+    const updateExpression = async () => {
+      if (isOpen) {
+        setExpression(value || "");
+      }
+    };
+    updateExpression();
   }, [isOpen, value]);
 
   const handleButtonClick = (char: string) => {

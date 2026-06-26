@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { getBankAccounts } from "@/app/actions/accounts";
 import { getTransactions } from "@/app/actions/transactions";
 import { getCategories } from "@/app/actions/categories";
@@ -15,7 +15,6 @@ import {
   Wallet, 
   Plus, 
   ArrowRight,
-  PiggyBank,
   Check,
   Undo2,
   ArrowUpRight,
@@ -43,9 +42,9 @@ const formatDate = (dateInput: Date | string) => {
 export default function Dashboard() {
   const formatBRL = (num: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(num);
   const [loading, setLoading] = useState(true);
-  const [accounts, setAccounts] = useState<any[]>([]);
-  const [transactions, setTransactions] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<Awaited<ReturnType<typeof getBankAccounts>>>([]);
+  const [transactions, setTransactions] = useState<Awaited<ReturnType<typeof getTransactions>>>([]);
+  const [categories, setCategories] = useState<Awaited<ReturnType<typeof getCategories>>>([]);
 
   // Month navigation (Default: current month)
   const [selectedMonthDate, setSelectedMonthDate] = useState(() => new Date());
@@ -58,7 +57,7 @@ export default function Dashboard() {
     setSelectedMonthDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
   };
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const [accs, txs, cats] = await Promise.all([getBankAccounts(), getTransactions(), getCategories()]);
       setAccounts(accs);
@@ -69,11 +68,14 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    const initData = async () => {
+      await loadData();
+    };
+    initData();
+  }, [loadData]);
 
   const handleStatusToggle = async (id: string) => {
     try {
@@ -133,7 +135,7 @@ export default function Dashboard() {
 
   // Get active tab chart data and total
   const tabData = (() => {
-    let filtered: any[] = [];
+    let filtered: typeof transactions = [];
     let title = "";
     let isTodas = false;
     
@@ -210,7 +212,7 @@ export default function Dashboard() {
 
   // 1. Saldo Geral (Soma de contas checking, savings, investment, cash)
   const totalBalance = accounts
-    .filter(a => a.type !== "credit_card")
+    .filter(a => a.accountType.type !== "credit_card")
     .reduce((sum, a) => sum + parseFloat(a.initialBalance), 0);
 
   // 2. Receitas Efetivadas (Soma de transações type === 'income' no mês selecionado que estão liquidadas)
@@ -267,27 +269,6 @@ export default function Dashboard() {
     };
   })();
 
-  // 4. Categorias Dinâmicas
-  const categoryChartData = (() => {
-    if (filteredTransactions.length === 0) return [];
-    
-    const categoryTotals: Record<string, number> = {};
-    filteredTransactions
-      .filter(t => t.type === "expense" && t.categoryName)
-      .forEach(t => {
-        categoryTotals[t.categoryName!] = (categoryTotals[t.categoryName!] || 0) + parseFloat(t.amount);
-      });
-
-    return Object.entries(categoryTotals).map(([name, value]) => {
-      const cat = categories.find(c => c.name === name);
-      return {
-        name,
-        value,
-        color: cat?.color || "#71717a",
-      };
-    });
-  })();
-
   // 5. Gráfico de Fluxo de Caixa (Saldo diário acumulado no mês selecionado para Liquidado vs Pendente)
   const chartData = (() => {
     if (accounts.length === 0) return [];
@@ -313,7 +294,7 @@ export default function Dashboard() {
     }
 
     let runningCleared = accounts
-      .filter(a => a.type !== "credit_card")
+      .filter(a => a.accountType?.type !== "credit_card")
       .reduce((sum, a) => sum + parseFloat(a.initialBalance), 0);
 
     let runningPending = runningCleared + transactions
@@ -745,7 +726,7 @@ export default function Dashboard() {
                   return (
                     <div key={acc.id} className="flex items-center justify-between text-xs py-2 border-b border-zinc-100 dark:border-zinc-900/50 last:border-0">
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <BankLogo institution={acc.institution} type={acc.type} className="h-7 w-7 rounded-lg" />
+                        <BankLogo institution={acc.institution} type={acc.accountType.type} className="h-7 w-7 rounded-lg" />
                         <span className="truncate text-zinc-700 dark:text-zinc-300 font-semibold">{acc.name}</span>
                       </div>
                       <span className="font-bold text-zinc-900 dark:text-zinc-50 whitespace-nowrap ml-2">
@@ -891,7 +872,7 @@ export default function Dashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {recentTxs.map((tx: any) => {
+                {recentTxs.map((tx) => {
                   const isInc = tx.type === "income";
                   const isTrans = tx.type === "transfer";
                   return (

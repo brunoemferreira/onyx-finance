@@ -77,7 +77,10 @@ export default function BankSelector({ value, onValueChange, type }: BankSelecto
 
   // Reset search when opening
   useEffect(() => {
-    if (isOpen) setSearch("");
+    const updateSearch = async () => {
+      if (isOpen) setSearch("");
+    };
+    updateSearch();
   }, [isOpen]);
 
   const allInstitutions = useMemo(() => {

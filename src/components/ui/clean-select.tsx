@@ -38,7 +38,10 @@ export function CleanSelect({ value, onValueChange, options, placeholder = "Sele
   }, []);
 
   useEffect(() => {
-    if (isOpen) setSearch("");
+    const updateSearch = async () => {
+      if (isOpen) setSearch("");
+    };
+    updateSearch();
   }, [isOpen]);
 
   const filteredOptions = useMemo(() => {
