@@ -878,28 +878,41 @@ export default function TransactionsPage() {
       {/* Filtros Container */}
       <div className="bg-white dark:bg-zinc-950 p-4 rounded-xl border border-zinc-200 dark:border-zinc-900 space-y-4">
         <div className="flex flex-wrap items-center justify-start gap-3">
-          {/* Navegador Mensal */}
-          <div className="flex items-center justify-between border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/10 rounded-xl px-2 h-9 w-52 shrink-0">
-            <Button 
+          {/* Navegador Mensal e Mês Atual */}
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center justify-between border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/10 rounded-xl px-2 h-9 w-52 shrink-0">
+              <Button 
+                type="button"
+                variant="ghost" 
+                size="icon" 
+                onClick={handlePrevMonth} 
+                className="h-7 w-7 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-xs font-bold capitalize text-zinc-900 dark:text-zinc-100 text-center flex-1 select-none">
+                {selectedMonthDate.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
+              </span>
+              <Button 
+                type="button"
+                variant="ghost" 
+                size="icon" 
+                onClick={handleNextMonth} 
+                className="h-7 w-7 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <Button
               type="button"
-              variant="ghost" 
-              size="icon" 
-              onClick={handlePrevMonth} 
-              className="h-7 w-7 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+              variant="outline"
+              size="sm"
+              onClick={() => setSelectedMonthDate(new Date())}
+              className="h-9 px-3 text-xs font-semibold border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-xl transition-colors shadow-sm"
+              title="Ir para o mês atual"
             >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-xs font-bold capitalize text-zinc-900 dark:text-zinc-100 text-center flex-1 select-none">
-              {selectedMonthDate.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
-            </span>
-            <Button 
-              type="button"
-              variant="ghost" 
-              size="icon" 
-              onClick={handleNextMonth} 
-              className="h-7 w-7 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
-            >
-              <ChevronRight className="h-4 w-4" />
+              Esse mês
             </Button>
           </div>
 
