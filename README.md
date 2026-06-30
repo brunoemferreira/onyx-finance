@@ -147,7 +147,7 @@ Para habilitar a autenticação social no Onyx Finance, siga as instruções de 
     ```bash
     npm run dev
     ```
-    Acesse [http://localhost:3002](http://localhost:3002) no seu navegador.
+    Acesse [http://localhost:3002](http://localhost:3002) no seu navegador. 
 
 ---
 
